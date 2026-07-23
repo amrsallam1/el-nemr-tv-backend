@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 class MediaController extends Controller
 {
@@ -39,7 +40,33 @@ class MediaController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $media = Media::create(Arr::except($this->validated($request), 'genre_ids'));
+        $data = $this->validated($request);
+        $payload = Arr::only($data, [
+            'type',
+            'title',
+            'slug',
+            'name',
+            'tmdb_id',
+            'imdb_id',
+            'overview',
+            'poster_path',
+            'backdrop_path',
+            'preview_path',
+            'release_date',
+            'runtime',
+            'vote_average',
+            'is_featured',
+            'is_recommended',
+            'is_pinned',
+            'is_premium',
+            'is_published',
+            'sort_order',
+            'metadata',
+        ]);
+
+        $payload['slug'] = $payload['slug'] ?: Str::slug($payload['title']);
+
+        $media = Media::create($payload);
         $media->genres()->sync($request->input('genre_ids', []));
 
         return (new MediaResource($media->load('genres')))
@@ -54,7 +81,33 @@ class MediaController extends Controller
 
     public function update(Request $request, Media $media): MediaResource
     {
-        $media->update(Arr::except($this->validated($request, $media), 'genre_ids'));
+        $data = $this->validated($request, $media);
+        $payload = Arr::only($data, [
+            'type',
+            'title',
+            'slug',
+            'name',
+            'tmdb_id',
+            'imdb_id',
+            'overview',
+            'poster_path',
+            'backdrop_path',
+            'preview_path',
+            'release_date',
+            'runtime',
+            'vote_average',
+            'is_featured',
+            'is_recommended',
+            'is_pinned',
+            'is_premium',
+            'is_published',
+            'sort_order',
+            'metadata',
+        ]);
+
+        $payload['slug'] = $payload['slug'] ?: Str::slug($payload['title']);
+
+        $media->update($payload);
 
         if ($request->has('genre_ids')) {
             $media->genres()->sync($request->input('genre_ids', []));

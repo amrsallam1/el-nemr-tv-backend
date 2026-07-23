@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 
 class MediaController extends Controller
 {
@@ -31,7 +32,23 @@ class MediaController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $media = Media::create(Arr::except($data, 'genre_ids'));
+        $payload = Arr::only($data, [
+            'type',
+            'title',
+            'slug',
+            'overview',
+            'poster_path',
+            'backdrop_path',
+            'release_date',
+            'vote_average',
+            'is_published',
+            'is_featured',
+            'is_premium',
+        ]);
+
+        $payload['slug'] = $payload['slug'] ?: Str::slug($payload['title']);
+
+        $media = Media::create($payload);
         $media->genres()->sync($data['genre_ids'] ?? []);
 
         return redirect()->route('admin.media.index')->with('success', 'تمت إضافة المحتوى.');
@@ -48,7 +65,23 @@ class MediaController extends Controller
     public function update(Request $request, Media $media): RedirectResponse
     {
         $data = $this->validated($request, $media);
-        $media->update(Arr::except($data, 'genre_ids'));
+        $payload = Arr::only($data, [
+            'type',
+            'title',
+            'slug',
+            'overview',
+            'poster_path',
+            'backdrop_path',
+            'release_date',
+            'vote_average',
+            'is_published',
+            'is_featured',
+            'is_premium',
+        ]);
+
+        $payload['slug'] = $payload['slug'] ?: Str::slug($payload['title']);
+
+        $media->update($payload);
         $media->genres()->sync($data['genre_ids'] ?? []);
 
         return redirect()->route('admin.media.index')->with('success', 'تم تحديث المحتوى.');
