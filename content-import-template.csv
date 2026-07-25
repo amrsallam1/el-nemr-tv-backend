@@ -1,0 +1,3 @@
+title,type,year,tmdb_id,description,poster_url,backdrop_url,stream_url,quality,language,subtitle_url,featured,published
+فيلم تجريبي,movie,2024,,,https://example.com/poster.jpg,https://example.com/backdrop.jpg,https://example.com/video-1080.mp4,1080p,ar,,0,1
+مسلسل تجريبي,series,2024,,,https://example.com/poster-series.jpg,https://example.com/backdrop-series.jpg,,,,ar,,1,1

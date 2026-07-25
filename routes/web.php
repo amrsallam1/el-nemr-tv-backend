@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\CatalogController;
+use App\Http\Controllers\Admin\ImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -19,6 +20,8 @@ Route::middleware('guest')->group(function () {
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('media-import', [ImportController::class, 'create'])->name('media.import');
+    Route::post('media-import', [ImportController::class, 'store'])->name('media.import.store');
     Route::resource('media', MediaController::class)
         ->parameters(['media' => 'media'])
         ->except(['show']);
