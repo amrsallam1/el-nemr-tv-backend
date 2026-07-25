@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Media;
+use App\Services\TmdbService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -11,6 +12,10 @@ use Illuminate\View\View;
 
 class ImportController extends Controller
 {
+    public function __construct(private readonly TmdbService $tmdb)
+    {
+    }
+
     public function create(): View
     {
         return view('admin.media.import');
@@ -38,14 +43,17 @@ class ImportController extends Controller
                 $type = strtolower(trim((string) ($row['type'] ?? 'movie')));
                 if ($title === '' || !in_array($type, ['movie', 'series', 'anime', 'live'], true)) throw new \InvalidArgumentException();
                 $tmdbId = trim((string) ($row['tmdb_id'] ?? '')) ?: null;
+                $metadata = $this->tmdb->find($type, $title, $tmdbId);
+                $tmdbId = $tmdbId ?: ($metadata['tmdb_id'] ?? null);
                 $slug = Str::slug($title).($tmdbId ? '-'.$tmdbId : '');
                 $media = $tmdbId ? Media::withTrashed()->where('tmdb_id', $tmdbId)->first() : Media::withTrashed()->where('slug', $slug)->first();
                 $payload = [
                     'type' => $type, 'title' => $title, 'name' => $title, 'slug' => $slug, 'tmdb_id' => $tmdbId,
-                    'overview' => trim((string) ($row['overview'] ?? $row['description'] ?? '')) ?: null,
-                    'poster_path' => trim((string) ($row['poster_path'] ?? $row['poster_url'] ?? '')) ?: null,
-                    'backdrop_path' => trim((string) ($row['backdrop_path'] ?? $row['backdrop_url'] ?? '')) ?: null,
-                    'release_date' => $this->releaseDate($row['release_date'] ?? $row['year'] ?? null),
+                    'overview' => trim((string) ($row['overview'] ?? $row['description'] ?? '')) ?: ($metadata['overview'] ?? null),
+                    'poster_path' => trim((string) ($row['poster_path'] ?? $row['poster_url'] ?? '')) ?: ($metadata['poster_path'] ?? null),
+                    'backdrop_path' => trim((string) ($row['backdrop_path'] ?? $row['backdrop_url'] ?? '')) ?: ($metadata['backdrop_path'] ?? null),
+                    'release_date' => $this->releaseDate($row['release_date'] ?? $row['year'] ?? null) ?: ($metadata['release_date'] ?? null),
+                    'vote_average' => $metadata['vote_average'] ?? 0,
                     'is_featured' => $this->boolean($row['featured'] ?? $row['is_featured'] ?? false),
                     'is_published' => $this->boolean($row['published'] ?? $row['is_published'] ?? true),
                 ];
