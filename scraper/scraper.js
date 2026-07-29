@@ -2,11 +2,17 @@ const { chromium } = require('playwright');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const config = require('./config');
 
-// إعدادات السكربت
-const MAX_MOVIES = 5;
-const DELAY_BETWEEN_REQUESTS = 3000;
+// إعدادات مباشرة (بدون الحاجة لملف config.js)
+const config = {
+    appUrl: process.env.APP_URL || 'https://el-nemr-tv-backend-production.up.railway.app',
+    adminEmail: process.env.ADMIN_EMAIL || 'admin@example.com',
+    adminPassword: process.env.ADMIN_PASSWORD || 'your_password_here',
+    maxMoviesPerRun: 5,
+    headless: true,
+    delayBetweenRequests: 3000,
+    timeout: 30000
+};
 
 // الدوال المساعدة
 function log(message, type = 'info') {
@@ -20,7 +26,7 @@ function log(message, type = 'info') {
     console.log(`${timestamp} ${prefix} ${message}`);
 }
 
-// دالة لجلب روابط الأفلام من أكوام
+// دالة لجلب روابط الأفلام من أكوام (معدلة)
 async function getMovieUrlsFromAkwams(page) {
     log('جاري البحث عن روابط الأفلام في أكوام...', 'info');
     
@@ -35,35 +41,35 @@ async function getMovieUrlsFromAkwams(page) {
         const urls = [];
         const baseUrl = 'https://akwams.org';
         
+        // الكلمات الممنوعة للاستبعاد
+        const excludePatterns = [
+            '/category/', '/page/', '/search', 
+            '/login', '/register', '/genre', '/tag',
+            '/user/', '/admin', '/wp-', '/feed'
+        ];
+        
+        // المسارات الصالحة للأفلام
+        const validPaths = ['/watch/', '/movie/', '/film/'];
+        
         allLinks.forEach(link => {
             let href = link.getAttribute('href');
             if (!href) return;
             
+            // نجعل الرابط كاملاً
             if (href.startsWith('/')) {
                 href = baseUrl + href;
             }
             
             // استبعاد الروابط غير المرغوب فيها
-            const excludePatterns = [
-                '/category/', '/movies/page/', '/search', 
-                '/login', '/register', '/genre', '/tag',
-                '/user/', '/admin', '/wp-', '/feed'
-            ];
-            
             if (excludePatterns.some(pattern => href.includes(pattern))) {
                 return;
             }
             
             // قبول فقط الروابط التي تشبه صفحة فيلم
-            const isMovieLink = href.includes('/watch/') || 
-                               href.includes('/movie/') ||
-                               (href.startsWith(baseUrl + '/') && 
-                                !href.includes('/category/') && 
-                                !href.includes('/page/') &&
-                                !href.includes('/movies') &&
-                                href.split('/').length === 4);
+            const isValidMovie = validPaths.some(path => href.includes(path));
+            const hasValidLength = href.split('/').length >= 5;
             
-            if (isMovieLink && !urls.includes(href)) {
+            if (isValidMovie && hasValidLength && !urls.includes(href)) {
                 urls.push(href);
             }
         });
@@ -71,12 +77,12 @@ async function getMovieUrlsFromAkwams(page) {
         return urls;
     });
     
-    const limitedUrls = movieLinks.slice(0, MAX_MOVIES);
+    const limitedUrls = movieLinks.slice(0, config.maxMoviesPerRun);
     log(`تم العثور على ${limitedUrls.length} رابط فيلم من أكوام`, 'success');
     return limitedUrls;
 }
 
-// دالة لجلب روابط الأفلام من سيما لايت
+// دالة لجلب روابط الأفلام من سيما لايت (معدلة)
 async function getMovieUrlsFromCimalight(page) {
     log('جاري البحث عن روابط الأفلام في سيما لايت...', 'info');
     
@@ -94,6 +100,15 @@ async function getMovieUrlsFromCimalight(page) {
         const urls = [];
         const baseUrl = 'https://r.cimalight.co';
         
+        const excludePatterns = [
+            '/categories/', '/page/', '/search', '/login', '/register', 
+            '/genre', '/tag', '/user/', '/admin', '/wp-', '/feed',
+            '/main24', '/category', '/all-series.php', '/episodes.php',
+            '/movies.php', '/tv.php', '/index.php'
+        ];
+        
+        const validPaths = ['/watch/', '/movie/', '/film/', '/series/'];
+        
         allLinks.forEach(link => {
             let href = link.getAttribute('href');
             if (!href) return;
@@ -102,22 +117,14 @@ async function getMovieUrlsFromCimalight(page) {
                 href = baseUrl + href;
             }
             
-            const excludePatterns = [
-                '/categories/', '/search', '/login', '/register', 
-                '/page/', '/genre', '/main24', '/category'
-            ];
-            
             if (excludePatterns.some(pattern => href.includes(pattern))) {
                 return;
             }
             
-            const isMovieLink = href.includes('/watch/') || 
-                               href.includes('/movie/') ||
-                               (href.startsWith(baseUrl + '/') && 
-                                !href.includes('/main24') &&
-                                href.split('/').length === 4);
+            const isValidMovie = validPaths.some(path => href.includes(path));
+            const hasValidLength = href.split('/').length >= 5;
             
-            if (isMovieLink && !urls.includes(href)) {
+            if (isValidMovie && hasValidLength && !urls.includes(href)) {
                 urls.push(href);
             }
         });
@@ -125,7 +132,7 @@ async function getMovieUrlsFromCimalight(page) {
         return urls;
     });
     
-    const limitedUrls = movieLinks.slice(0, MAX_MOVIES);
+    const limitedUrls = movieLinks.slice(0, config.maxMoviesPerRun);
     log(`تم العثور على ${limitedUrls.length} رابط فيلم من سيما لايت`, 'success');
     return limitedUrls;
 }
@@ -175,6 +182,13 @@ async function scrapeMovieFromUrl(pageUrl, retries = 2) {
         // تكملة الروابط الناقصة
         if (movie.poster && !movie.poster.startsWith('http')) {
             movie.poster = 'https://akwams.org' + movie.poster;
+        }
+
+        // التأكد من أن العنوان ليس صفحة رئيسية
+        if (movie.title.includes('اكوام') || movie.title.includes('Akwam') || 
+            movie.title.includes('الصفحة الرئيسية') || movie.title.includes('جديد')) {
+            log(`تم تخطي صفحة رئيسية: ${movie.title}`, 'warning');
+            return null;
         }
 
         log(`تم استخراج: ${movie.title}`, 'success');
@@ -259,6 +273,7 @@ async function addMovieToApp(movieData) {
             log('تم تسجيل الدخول بنجاح', 'success');
         } catch (error) {
             log(`فشل تسجيل الدخول: ${error.message}`, 'error');
+            log(`تأكد من صحة البريد الإلكتروني وكلمة السر في ملف .env`, 'error');
             return null;
         }
 
@@ -323,7 +338,12 @@ async function addMovieToApp(movieData) {
 // الدالة الرئيسية
 async function main() {
     log('🚀 بدء تشغيل السكربت المتطور...', 'info');
-    log(`عدد الأفلام المطلوب جلبها: ${MAX_MOVIES}`, 'info');
+    log(`عدد الأفلام المطلوب جلبها: ${config.maxMoviesPerRun}`, 'info');
+    
+    // تحقق من صحة بيانات الدخول
+    if (config.adminEmail === 'admin@example.com' || config.adminPassword === 'your_password_here') {
+        log('⚠️ تحذير: استخدم بيانات الدخول الافتراضية! قم بتعديل ملف .env', 'warning');
+    }
     
     const browser = await chromium.launch({
         headless: true,
@@ -366,8 +386,14 @@ async function main() {
 
     await browser.close();
 
-    // إزالة التكرار
+    // إزالة التكرار والروابط غير الصالحة
     allMovieUrls = [...new Set(allMovieUrls)];
+    
+    // فلتر إضافي للتأكد من صحة الروابط
+    allMovieUrls = allMovieUrls.filter(url => {
+        return url.includes('/watch/') || url.includes('/movie/') || url.includes('/film/') || url.includes('/series/');
+    });
+    
     log(`إجمالي الروابط الفريدة المستخرجة: ${allMovieUrls.length}`, 'info');
 
     if (allMovieUrls.length === 0) {
@@ -377,6 +403,8 @@ async function main() {
 
     // معالجة كل فيلم
     let successCount = 0;
+    let skippedCount = 0;
+    
     for (let i = 0; i < allMovieUrls.length; i++) {
         const url = allMovieUrls[i];
         log(`[${i+1}/${allMovieUrls.length}] معالجة: ${url}`, 'info');
@@ -386,18 +414,24 @@ async function main() {
         
         const movieData = await scrapeMovieFromUrl(url);
         if (movieData) {
-            await addMovieToApp(movieData);
-            successCount++;
+            const result = await addMovieToApp(movieData);
+            if (result) {
+                successCount++;
+            } else {
+                skippedCount++;
+            }
+        } else {
+            skippedCount++;
         }
         
         if (i < allMovieUrls.length - 1) {
-            log(`ننتظر ${DELAY_BETWEEN_REQUESTS/1000} ثواني...`, 'info');
-            await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
+            log(`ننتظر ${config.delayBetweenRequests/1000} ثواني...`, 'info');
+            await new Promise(resolve => setTimeout(resolve, config.delayBetweenRequests));
         }
     }
 
     log(`🎉 تم الانتهاء!`, 'success');
-    log(`تمت معالجة ${successCount} فيلم بنجاح من أصل ${allMovieUrls.length}`, 'info');
+    log(`تمت معالجة ${successCount} فيلم بنجاح، تخطى ${skippedCount} فيلم، من أصل ${allMovieUrls.length}`, 'info');
 }
 
 // تشغيل السكربت
