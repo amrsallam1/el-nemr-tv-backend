@@ -103,6 +103,9 @@ async function processMovie(movieData) {
 async function main() {
   const browser = await chromium.launch({ headless: config.headless });
   const page = await browser.newPage();
+  let processedCount = 0;
+  let skippedSources = 0;
+  let skippedMovies = 0;
   try {
     const sourceUrls = [
       { url: 'https://akwams.org/movies/', baseUrl: 'https://akwams.org' },
@@ -116,23 +119,28 @@ async function main() {
         allMovieUrls = allMovieUrls.concat(urls);
         console.log(`Collected ${urls.length} URLs from ${source.url}`);
       } catch (error) {
+        skippedSources += 1;
         console.error(`Skipping source ${source.url}:`, error.message);
       }
     }
     await browser.close();
     allMovieUrls = [...new Set(allMovieUrls)];
+    console.log(`Sources checked: ${sourceUrls.length}, skipped: ${skippedSources}, collected URLs: ${allMovieUrls.length}`);
     for (let index = 0; index < allMovieUrls.length; index += 1) {
       try {
         const movieData = await scrapeMovieFromUrl(allMovieUrls[index]);
         await processMovie(movieData);
+        processedCount += 1;
         console.log(`Processed ${index + 1}/${allMovieUrls.length}: ${movieData?.title || allMovieUrls[index]}`);
       } catch (error) {
+        skippedMovies += 1;
         console.error(`Skipping movie ${allMovieUrls[index]}:`, error.message);
       }
       if (index < allMovieUrls.length - 1) {
         await sleep(config.delayBetweenRequests);
       }
     }
+    console.log(`Summary: processed=${processedCount}, skipped_movies=${skippedMovies}, total_urls=${allMovieUrls.length}`);
   } catch (error) {
     await browser.close();
     throw error;
