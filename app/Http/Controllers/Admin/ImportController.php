@@ -67,8 +67,11 @@ class ImportController extends Controller
                 if ($media) { $media->restore(); $media->update($payload); $updated++; }
                 else { $media = Media::create($payload); $created++; }
                 $url = trim((string) ($row['stream_url'] ?? $row['url'] ?? ''));
-                if ($url !== '' && !$media->streams()->where('url', $url)->exists()) {
-                    $media->streams()->create(['name' => trim((string) ($row['server'] ?? 'Server 1')) ?: 'Server 1', 'url' => $url, 'quality' => trim((string) ($row['quality'] ?? '')) ?: null, 'language' => trim((string) ($row['language'] ?? '')) ?: null, 'is_active' => true]);
+                if ($url !== '') {
+                    $streamData = ['name' => trim((string) ($row['server'] ?? 'Server 1')) ?: 'Server 1', 'url' => $url, 'quality' => trim((string) ($row['quality'] ?? '')) ?: null, 'language' => trim((string) ($row['language'] ?? '')) ?: null, 'embed' => $this->boolean($row['embed'] ?? false), 'is_active' => true];
+                    $stream = $media->streams()->where('url', $url)->first();
+                    if ($stream) $stream->update($streamData);
+                    else $media->streams()->create($streamData);
                     $streams++;
                 }
             } catch (\Throwable) { $failed++; }

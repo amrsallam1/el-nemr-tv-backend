@@ -44,6 +44,7 @@ class StreamController extends Controller
         return $request->validate([
             'name' => ['sometimes', 'string', 'max:100'],
             'url' => [$updating ? 'sometimes' : 'required', 'url:http,https', 'max:8192'],
+            'embed' => ['sometimes', 'boolean'],
             'quality' => ['nullable', 'string', 'max:50'],
             'language' => ['nullable', 'string', 'max:50'],
             'headers' => ['nullable', 'array'],

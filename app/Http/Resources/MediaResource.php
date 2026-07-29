@@ -53,7 +53,7 @@ class MediaResource extends JsonResource
                 'hls' => str_contains(strtolower($stream->url), '.m3u8') ? 1 : 0,
                 'header' => $stream->headers ? json_encode($stream->headers) : null,
                 'useragent' => null,
-                'embed' => 0,
+                'embed' => $stream->embed ? 1 : 0,
                 'youtubelink' => 0,
                 'supported_hosts' => 0,
                 'external' => 0,

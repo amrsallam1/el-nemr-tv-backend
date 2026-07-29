@@ -11,7 +11,7 @@ class Stream extends Model
 
     protected function casts(): array
     {
-        return ['headers' => 'array', 'is_active' => 'boolean'];
+        return ['headers' => 'array', 'is_active' => 'boolean', 'embed' => 'boolean'];
     }
 
     public function media(): BelongsTo
