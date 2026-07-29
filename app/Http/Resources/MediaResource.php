@@ -53,7 +53,9 @@ class MediaResource extends JsonResource
                 'hls' => str_contains(strtolower($stream->url), '.m3u8') ? 1 : 0,
                 'header' => $stream->headers ? json_encode($stream->headers) : null,
                 'useragent' => null,
-                'embed' => $stream->embed ? 1 : 0,
+                // Treat explicit embed streams, and common embed/player page URLs,
+                // as web pages instead of sending them to ExoPlayer as media files.
+                'embed' => ($stream->embed || preg_match('/(?:\/embed\/|\/iframe\/|[?&]embed=1)/i', $stream->url)) ? 1 : 0,
                 'youtubelink' => 0,
                 'supported_hosts' => 0,
                 'external' => 0,
