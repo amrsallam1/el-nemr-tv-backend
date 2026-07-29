@@ -10,14 +10,40 @@ const config = {
   headless: true,
   delayBetweenRequests: 3000,
   timeout: 30000,
+  retryCount: 2,
 };
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function gotoWithRetry(page, url, options = {}) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= config.retryCount; attempt += 1) {
+    try {
+      return await page.goto(url, {
+        waitUntil: options.waitUntil || 'domcontentloaded',
+        timeout: options.timeout || config.timeout,
+      });
+    } catch (error) {
+      lastError = error;
+      console.error(`Failed loading ${url} (attempt ${attempt + 1}): ${error.message}`);
+      if (attempt < config.retryCount) {
+        await sleep(1500);
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 async function scrapeMovieFromUrl(pageUrl) {
   const browser = await chromium.launch({ headless: config.headless });
   const page = await browser.newPage();
   try {
-    await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: config.timeout });
-    await page.waitForTimeout(3000);
+    await gotoWithRetry(page, pageUrl, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
     const html = await page.content();
     const $ = cheerio.load(html);
     const movie = {
@@ -85,19 +111,26 @@ async function main() {
     let allMovieUrls = [];
     for (const source of sourceUrls) {
       try {
-        await page.goto(source.url, { waitUntil: 'networkidle', timeout: config.timeout });
-        allMovieUrls = allMovieUrls.concat(await getMovieUrlsFromPage(page, source.baseUrl));
+        await gotoWithRetry(page, source.url, { waitUntil: 'domcontentloaded' });
+        const urls = await getMovieUrlsFromPage(page, source.baseUrl);
+        allMovieUrls = allMovieUrls.concat(urls);
+        console.log(`Collected ${urls.length} URLs from ${source.url}`);
       } catch (error) {
-        console.error(`Failed source ${source.url}:`, error.message);
+        console.error(`Skipping source ${source.url}:`, error.message);
       }
     }
     await browser.close();
     allMovieUrls = [...new Set(allMovieUrls)];
     for (let index = 0; index < allMovieUrls.length; index += 1) {
-      const movieData = await scrapeMovieFromUrl(allMovieUrls[index]);
-      await processMovie(movieData);
+      try {
+        const movieData = await scrapeMovieFromUrl(allMovieUrls[index]);
+        await processMovie(movieData);
+        console.log(`Processed ${index + 1}/${allMovieUrls.length}: ${movieData?.title || allMovieUrls[index]}`);
+      } catch (error) {
+        console.error(`Skipping movie ${allMovieUrls[index]}:`, error.message);
+      }
       if (index < allMovieUrls.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, config.delayBetweenRequests));
+        await sleep(config.delayBetweenRequests);
       }
     }
   } catch (error) {
