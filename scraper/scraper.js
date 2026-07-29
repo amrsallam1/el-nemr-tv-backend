@@ -3,12 +3,14 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-// إعدادات مباشرة (بدون الحاجة لملف config.js)
+// إعدادات مباشرة من ملف .env
+require('dotenv').config();
+
 const config = {
     appUrl: process.env.APP_URL || 'https://el-nemr-tv-backend-production.up.railway.app',
     adminEmail: process.env.ADMIN_EMAIL || 'admin@example.com',
     adminPassword: process.env.ADMIN_PASSWORD || 'your_password_here',
-    maxMoviesPerRun: 5,
+    maxMoviesPerRun: parseInt(process.env.MAX_MOVIES) || 5,
     headless: true,
     delayBetweenRequests: 3000,
     timeout: 30000
@@ -186,7 +188,8 @@ async function scrapeMovieFromUrl(pageUrl, retries = 2) {
 
         // التأكد من أن العنوان ليس صفحة رئيسية
         if (movie.title.includes('اكوام') || movie.title.includes('Akwam') || 
-            movie.title.includes('الصفحة الرئيسية') || movie.title.includes('جديد')) {
+            movie.title.includes('الصفحة الرئيسية') || movie.title.includes('جديد') ||
+            movie.title.includes('Sorry, you have been blocked')) {
             log(`تم تخطي صفحة رئيسية: ${movie.title}`, 'warning');
             return null;
         }
