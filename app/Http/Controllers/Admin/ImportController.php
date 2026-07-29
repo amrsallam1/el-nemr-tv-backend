@@ -32,20 +32,27 @@ class ImportController extends Controller
         }
         $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $headers[0]);
         $headers = array_map(fn ($header) => Str::snake(trim((string) $header)), $headers);
-        $created = $updated = $streams = $failed = 0;
-
+        $rows = [];
         while (($values = fgetcsv($handle)) !== false) {
             if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) continue;
             $values = array_pad($values, count($headers), null);
-            $row = array_combine($headers, array_slice($values, 0, count($headers)));
+            $rows[] = array_combine($headers, array_slice($values, 0, count($headers)));
+        }
+
+        $created = $updated = $streams = $failed = 0;
+        // Large imports must not make one synchronous request perform 100 remote API calls.
+        $enrichTitles = count($rows) <= 20;
+        foreach ($rows as $row) {
             try {
                 $title = trim((string) ($row['title'] ?? ''));
                 $type = strtolower(trim((string) ($row['type'] ?? 'movie')));
                 if ($title === '' || !in_array($type, ['movie', 'series', 'anime', 'live'], true)) throw new \InvalidArgumentException();
                 $tmdbId = trim((string) ($row['tmdb_id'] ?? '')) ?: null;
-                $metadata = $this->tmdb->find($type, $title, $tmdbId);
+                $metadata = ($enrichTitles || $tmdbId) ? $this->tmdb->find($type, $title, $tmdbId) : [];
                 $tmdbId = $tmdbId ?: ($metadata['tmdb_id'] ?? null);
-                $slug = Str::slug($title).($tmdbId ? '-'.$tmdbId : '');
+                $slug = Str::slug($title);
+                if ($slug === '') $slug = 'media-'.substr(sha1($type.'|'.$title), 0, 12);
+                $slug .= $tmdbId ? '-'.$tmdbId : '';
                 $media = $tmdbId ? Media::withTrashed()->where('tmdb_id', $tmdbId)->first() : Media::withTrashed()->where('slug', $slug)->first();
                 $payload = [
                     'type' => $type, 'title' => $title, 'name' => $title, 'slug' => $slug, 'tmdb_id' => $tmdbId,
@@ -66,7 +73,6 @@ class ImportController extends Controller
                 }
             } catch (\Throwable) { $failed++; }
         }
-        fclose($handle);
         return redirect()->route('admin.media.index')->with('success', "تم الاستيراد: {$created} جديد، {$updated} محدث، {$streams} رابط تشغيل، {$failed} صف به خطأ.");
     }
 
