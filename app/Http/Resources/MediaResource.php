@@ -55,7 +55,7 @@ class MediaResource extends JsonResource
                 'useragent' => null,
                 // Treat explicit embed streams, and common embed/player page URLs,
                 // as web pages instead of sending them to ExoPlayer as media files.
-                'embed' => ($stream->embed || preg_match('/(?:\/embed\/|\/iframe\/|[?&]embed=1)/i', $stream->url)) ? 1 : 0,
+                'embed' => ($stream->embed || preg_match('/(?:\/embed(?:[\/_-]|$)|\/iframe\/|[?&]embed=1)/i', $stream->url)) ? 1 : 0,
                 'youtubelink' => 0,
                 'supported_hosts' => 0,
                 'external' => 0,
