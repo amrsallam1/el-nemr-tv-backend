@@ -12,13 +12,18 @@ class ScraperController extends Controller
     {
         $exitCode = Artisan::call('scraper:run');
         $output = trim(Artisan::output());
+        $message = $output !== '' ? $output : 'تعذر تشغيل السكربت.';
+
+        if ($exitCode !== 0 && str_contains(strtolower($output), 'scraper script not found')) {
+            $message = $output."\n\nتأكد أن ملف `scraper/scraper.js` موجود داخل الريبو المنشور على Railway، وأن آخر deploy تم بنجاح.";
+        }
 
         if ($exitCode !== 0) {
             return back()->withErrors([
-                'scraper' => $output !== '' ? $output : 'تعذر تشغيل السكربت.',
+                'scraper' => $message,
             ]);
         }
 
-        return back()->with('success', $output !== '' ? $output : 'تم تشغيل السكربت بنجاح.');
+        return back()->with('success', $message !== '' ? $message : 'تم تشغيل السكربت بنجاح.');
     }
 }
