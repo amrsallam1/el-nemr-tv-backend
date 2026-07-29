@@ -31,7 +31,7 @@ class RunMovieScraper extends Command
             return self::FAILURE;
         }
 
-        $process = Process::path($workingDirectory)->timeout(null)->run(['node', $scriptPath]);
+        $process = Process::path($workingDirectory)->timeout(3600)->run(['node', $scriptPath]);
 
         $this->line($process->output());
 
