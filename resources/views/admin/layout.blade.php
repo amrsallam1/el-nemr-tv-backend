@@ -30,6 +30,7 @@
         <div class="developer">Dev by <span>Dr Amr</span></div>
         <nav>
             <a href="{{ route('admin.dashboard') }}">الرئيسية</a>
+            <a href="{{ route('admin.dashboard') }}#scraper-run">تشغيل السكربت</a>
             <a href="{{ route('admin.media.index') }}">المحتوى</a>
             <a href="{{ route('admin.media.create') }}">إضافة محتوى</a>
         </nav>
