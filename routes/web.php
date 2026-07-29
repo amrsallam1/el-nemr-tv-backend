@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\CatalogController;
 use App\Http\Controllers\Admin\ImportController;
+use App\Http\Controllers\Admin\ScraperController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -22,6 +23,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('media-import', [ImportController::class, 'create'])->name('media.import');
     Route::post('media-import', [ImportController::class, 'store'])->name('media.import.store');
+    Route::post('scraper/run', [ScraperController::class, 'run'])->name('scraper.run');
     Route::resource('media', MediaController::class)
         ->parameters(['media' => 'media'])
         ->except(['show']);

@@ -39,4 +39,9 @@ return [
         'key' => env('TMDB_API_KEY'),
     ],
 
+    'scraper' => [
+        'path' => env('SCRAPER_SCRIPT_PATH'),
+        'cwd' => env('SCRAPER_WORKDIR'),
+    ],
+
 ];
