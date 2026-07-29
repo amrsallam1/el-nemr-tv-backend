@@ -13,8 +13,11 @@ class RunMovieScraper extends Command
 
     public function handle(): int
     {
-        $scriptPath = $this->option('path') ?: config('services.scraper.path') ?: base_path('scraper/scraper.js');
-        $workingDirectory = $this->option('cwd') ?: config('services.scraper.cwd') ?: base_path('scraper');
+        $bundledScriptPath = base_path('scraper/scraper.js');
+        $bundledWorkingDirectory = base_path('scraper');
+
+        $scriptPath = $this->option('path') ?: (is_file($bundledScriptPath) ? $bundledScriptPath : config('services.scraper.path'));
+        $workingDirectory = $this->option('cwd') ?: (is_dir($bundledWorkingDirectory) ? $bundledWorkingDirectory : config('services.scraper.cwd'));
 
         if (! $scriptPath || ! is_file($scriptPath)) {
             $this->error('Scraper script not found. Put scraper/scraper.js in the repo or set SCRAPER_SCRIPT_PATH.');
