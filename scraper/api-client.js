@@ -5,7 +5,7 @@ dotenv.config();
 
 const api = axios.create({
   baseURL: process.env.APP_URL,
-  timeout: 30000,
+  timeout: parseInt(process.env.REQUEST_TIMEOUT || '45000', 10),
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -16,12 +16,15 @@ let token = null;
 
 async function login() {
   if (token) return token;
+
   const response = await api.post('/api/login', {
     email: process.env.ADMIN_EMAIL,
     password: process.env.ADMIN_PASSWORD,
   });
-  token = response.data.token || response.data.accessToken || response.data.access_token;
+
+  token = response.data.token || response.data.accessToken || response.data.access_token || response.data.data?.token || null;
   if (!token) throw new Error('Login did not return a token');
+
   api.defaults.headers.common.Authorization = `Bearer ${token}`;
   return token;
 }
@@ -38,4 +41,4 @@ async function addStream(mediaSlug, streamData) {
   return response.data;
 }
 
-module.exports = { addMovie, addStream };
+module.exports = { login, addMovie, addStream };
