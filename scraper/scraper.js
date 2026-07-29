@@ -10,7 +10,7 @@ const config = {
     appUrl: process.env.APP_URL || 'https://el-nemr-tv-backend-production.up.railway.app',
     adminEmail: process.env.ADMIN_EMAIL || 'admin@example.com',
     adminPassword: process.env.ADMIN_PASSWORD || 'your_password_here',
-    maxMoviesPerRun: parseInt(process.env.MAX_MOVIES) || 5,
+    maxMoviesPerRun: 5,
     headless: true,
     delayBetweenRequests: 3000,
     timeout: 30000
@@ -43,31 +43,27 @@ async function getMovieUrlsFromAkwams(page) {
         const urls = [];
         const baseUrl = 'https://akwams.org';
         
-        // الكلمات الممنوعة للاستبعاد
         const excludePatterns = [
             '/category/', '/page/', '/search', 
             '/login', '/register', '/genre', '/tag',
-            '/user/', '/admin', '/wp-', '/feed'
+            '/user/', '/admin', '/wp-', '/feed',
+            '/movies/', '/series/', '/anime/'
         ];
         
-        // المسارات الصالحة للأفلام
-        const validPaths = ['/watch/', '/movie/', '/film/'];
+        const validPaths = ['/watch/', '/movie/', '/film/', '/anime/', '/series/'];
         
         allLinks.forEach(link => {
             let href = link.getAttribute('href');
             if (!href) return;
             
-            // نجعل الرابط كاملاً
             if (href.startsWith('/')) {
                 href = baseUrl + href;
             }
             
-            // استبعاد الروابط غير المرغوب فيها
             if (excludePatterns.some(pattern => href.includes(pattern))) {
                 return;
             }
             
-            // قبول فقط الروابط التي تشبه صفحة فيلم
             const isValidMovie = validPaths.some(path => href.includes(path));
             const hasValidLength = href.split('/').length >= 5;
             
@@ -338,7 +334,7 @@ async function addMovieToApp(movieData) {
     }
 }
 
-// الدالة الرئيسية
+// الدالة الرئيسية (معدلة للاختبار على فيلم واحد)
 async function main() {
     log('🚀 بدء تشغيل السكربت المتطور...', 'info');
     log(`عدد الأفلام المطلوب جلبها: ${config.maxMoviesPerRun}`, 'info');
@@ -361,6 +357,21 @@ async function main() {
 
     let allMovieUrls = [];
 
+    // ============================================
+    // 🔥 الجزء المعدل: استخدام رابط مباشر للاختبار
+    // ============================================
+    log('🧪 وضع الاختبار: استخدام رابط فيلم مباشر', 'info');
+    
+    // استخدم الرابط اللي حطيته
+    const directUrls = [
+        'https://akwams.org/%d9%85%d8%b4%d8%a7%d9%87%d8%af%d8%a9-%d9%81%d9%8a%d9%84%d9%85-scary-movie-2026-%d9%85%d8%aa%d8%b1%d8%ac%d9%85/watch/'
+    ];
+    allMovieUrls = directUrls;
+    
+    // ============================================
+    // الجزء القديم (معلق) - لو عايز تشغل البحث تاني
+    // ============================================
+    /*
     // جلب الروابط من أكوام
     try {
         log('جاري فتح أكوام...', 'info');
@@ -386,6 +397,7 @@ async function main() {
     } catch (error) {
         log(`فشل في جلب الروابط من سيما لايت: ${error.message}`, 'error');
     }
+    */
 
     await browser.close();
 
