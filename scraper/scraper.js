@@ -11,6 +11,7 @@ const config = {
   delayBetweenRequests: 3000,
   timeout: 30000,
   retryCount: 2,
+  maxCandidatesPerSource: 50,
 };
 
 function sleep(milliseconds) {
@@ -62,16 +63,49 @@ async function scrapeMovieFromUrl(pageUrl) {
 
 async function getMovieUrlsFromPage(page, selectorBaseUrl) {
   const movieLinks = await page.evaluate((baseUrl) => {
-    const links = document.querySelectorAll('a[href*="/movie/"], a[href*="/film/"]');
+    const linkSelectors = [
+      'a[href*="/movie/"]',
+      'a[href*="/film/"]',
+      'a[href*="/movies/"]',
+      'a[href*="/films/"]',
+      'a[href*="movie"]',
+      'a[href*="film"]',
+      'article a',
+      '.post a',
+      '.card a',
+      '.item a',
+      '.movie a',
+      '.film a',
+    ].join(', ');
+
+    const links = document.querySelectorAll(linkSelectors);
     const urls = [];
+
+    const looksLikeMovieLink = (href) => {
+      if (!href) return false;
+      const normalized = href.toLowerCase();
+      return (
+        normalized.includes('/movie/') ||
+        normalized.includes('/film/') ||
+        normalized.includes('/movies/') ||
+        normalized.includes('/films/') ||
+        /movie|film/.test(normalized)
+      );
+    };
+
     links.forEach((link) => {
-      let href = link.getAttribute('href');
-      if (href && !href.startsWith('http')) href = baseUrl + href;
-      if (href && href.includes('/movie/') && !urls.includes(href)) urls.push(href);
+      let href = link.getAttribute('href') || link.href || '';
+      if (!href) return;
+      if (!href.startsWith('http')) {
+        href = baseUrl.replace(/\/$/, '') + '/' + href.replace(/^\//, '');
+      }
+      if (looksLikeMovieLink(href) && !urls.includes(href)) {
+        urls.push(href);
+      }
     });
     return urls;
   }, selectorBaseUrl);
-  return [...new Set(movieLinks)].slice(0, config.maxMoviesPerRun);
+  return [...new Set(movieLinks)].slice(0, config.maxCandidatesPerSource);
 }
 
 async function processMovie(movieData) {
@@ -117,7 +151,19 @@ async function main() {
         await gotoWithRetry(page, source.url, { waitUntil: 'domcontentloaded' });
         const urls = await getMovieUrlsFromPage(page, source.baseUrl);
         allMovieUrls = allMovieUrls.concat(urls);
-        console.log(`Collected ${urls.length} URLs from ${source.url}`);
+        console.log(`Collected ${urls.length} candidate URLs from ${source.url}`);
+
+        if (urls.length === 0) {
+          const sample = await page.evaluate(() => {
+            return Array.from(document.querySelectorAll('a'))
+              .slice(0, 25)
+              .map((link) => ({
+                text: (link.textContent || '').trim(),
+                href: link.href || link.getAttribute('href') || '',
+              }));
+          });
+          console.log(`Sample links from ${source.url}: ${JSON.stringify(sample)}`);
+        }
       } catch (error) {
         skippedSources += 1;
         console.error(`Skipping source ${source.url}:`, error.message);
@@ -125,6 +171,9 @@ async function main() {
     }
     await browser.close();
     allMovieUrls = [...new Set(allMovieUrls)];
+    if (allMovieUrls.length > config.maxMoviesPerRun) {
+      allMovieUrls = allMovieUrls.slice(0, config.maxMoviesPerRun);
+    }
     console.log(`Sources checked: ${sourceUrls.length}, skipped: ${skippedSources}, collected URLs: ${allMovieUrls.length}`);
     for (let index = 0; index < allMovieUrls.length; index += 1) {
       try {
