@@ -10,17 +10,15 @@ class ScraperController extends Controller
 {
     public function run(): RedirectResponse
     {
-        $exitCode = Artisan::call('scraper:run');
+        $exitCode = Artisan::call('movies:sync-popular');
         $output = trim(Artisan::output());
-        $message = $output !== '' ? $output : 'تعذر تشغيل السكربت.';
         $status = $exitCode === 0 ? 'success' : 'error';
-
-        if ($exitCode !== 0 && str_contains(strtolower($output), 'scraper script not found')) {
-            $message = $output."\n\nتأكد أن ملف `scraper/scraper.js` موجود داخل الريبو المنشور على Railway، وأن آخر deploy تم بنجاح.";
-        }
+        $fallback = $exitCode === 0
+            ? 'تم تحديث الأفلام بنجاح.'
+            : 'تعذر تحديث الأفلام. راجع سجل التشغيل.';
 
         return back()
-            ->with($status, $message !== '' ? $message : 'تم تشغيل السكربت بنجاح.')
+            ->with($status, $output !== '' ? $output : $fallback)
             ->with('scraper_output', $output);
     }
 }

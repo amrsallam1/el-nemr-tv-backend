@@ -7,9 +7,9 @@ use App\Http\Resources\MediaResource;
 use App\Models\Media;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class MediaController extends Controller
 {
@@ -64,7 +64,7 @@ class MediaController extends Controller
             'metadata',
         ]);
 
-        $payload['slug'] = $payload['slug'] ?: Str::slug($payload['title']);
+        $payload['slug'] = trim((string) ($payload['slug'] ?? '')) ?: Str::slug($payload['title']);
 
         $media = Media::create($payload);
         $media->genres()->sync($request->input('genre_ids', []));
@@ -105,7 +105,9 @@ class MediaController extends Controller
             'metadata',
         ]);
 
-        $payload['slug'] = $payload['slug'] ?: Str::slug($payload['title']);
+        if (array_key_exists('slug', $payload)) {
+            $payload['slug'] = trim((string) $payload['slug']) ?: Str::slug((string) ($payload['title'] ?? $media->title));
+        }
 
         $media->update($payload);
 
@@ -129,8 +131,15 @@ class MediaController extends Controller
             'type' => [$media ? 'sometimes' : 'required', Rule::in(['movie', 'series', 'anime', 'live'])],
             'title' => [$media ? 'sometimes' : 'required', 'string', 'max:255'],
             'name' => ['nullable', 'string', 'max:255'],
-            'slug' => [$media ? 'sometimes' : 'required', 'string', 'max:255', Rule::unique('media')->ignore($media)],
-            'tmdb_id' => ['nullable', 'string', 'max:100'],
+            'slug' => [$media ? 'sometimes' : 'nullable', 'nullable', 'string', 'max:255', Rule::unique('media')->ignore($media)],
+            'tmdb_id' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('media', 'tmdb_id')
+                    ->where(fn ($query) => $query->where('type', $request->input('type', $media?->type)))
+                    ->ignore($media),
+            ],
             'imdb_id' => ['nullable', 'string', 'max:100'],
             'overview' => ['nullable', 'string'],
             'poster_path' => ['nullable', 'string', 'max:2048'],

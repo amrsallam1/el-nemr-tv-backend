@@ -4,9 +4,5 @@ PHP_VERSION = "8.3"
 
 [phases.install]
 cmds = [
-  "composer install --no-dev --ignore-platform-reqs --no-scripts --optimize-autoloader",
-  "npm install"
+  "composer install --no-dev --optimize-autoloader"
 ]
-
-[phases.build]
-cmds = ["npx playwright install --with-deps chromium"]
