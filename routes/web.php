@@ -1,10 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\CatalogController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ImportController;
+use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ScraperController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +25,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('media-import', [ImportController::class, 'create'])->name('media.import');
     Route::post('media-import', [ImportController::class, 'store'])->name('media.import.store');
     Route::post('scraper/run', [ScraperController::class, 'run'])->name('scraper.run');
+    Route::get('notifications', [NotificationController::class, 'create'])->name('notifications.create');
+    Route::post('notifications', [NotificationController::class, 'store'])->name('notifications.store');
     Route::resource('media', MediaController::class)
         ->parameters(['media' => 'media'])
         ->except(['show']);

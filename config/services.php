@@ -66,6 +66,12 @@ return [
         ],
     ],
 
+    'firebase' => [
+        'credentials_json' => env('FIREBASE_CREDENTIALS_JSON'),
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'topic' => env('FIREBASE_TOPIC', 'all'),
+    ],
+
     'scraper' => [
         'path' => env('SCRAPER_SCRIPT_PATH'),
         'cwd' => env('SCRAPER_WORKDIR'),

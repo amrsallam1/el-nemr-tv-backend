@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MediaResource;
+use App\Models\Genre;
 use App\Models\Media;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +41,61 @@ class ContentController extends Controller
     public function chosen(): JsonResponse
     {
         return $this->collection('choosed', $this->base()->inRandomOrder()->limit(20));
+    }
+
+    public function pinned(): JsonResponse
+    {
+        return $this->collection('pinned', $this->base()
+            ->where('is_pinned', true)->orderBy('sort_order')->latest());
+    }
+
+    public function popular(): JsonResponse
+    {
+        return $this->collection('popular', $this->base()
+            ->where('type', 'movie')->orderByDesc('views')->orderByDesc('vote_average')->limit(20));
+    }
+
+    public function popularSeries(): JsonResponse
+    {
+        return $this->collection('popularSeries', $this->base()
+            ->where('type', 'series')->orderByDesc('views')->orderByDesc('vote_average')->limit(20));
+    }
+
+    public function top(): JsonResponse
+    {
+        return $this->collection('top10', $this->base()
+            ->orderByDesc('sort_order')->orderByDesc('views')->orderByDesc('vote_average')->limit(10));
+    }
+
+    public function previews(): JsonResponse
+    {
+        return $this->collection('previews', $this->base()
+            ->whereNotNull('preview_path')->latest()->limit(20));
+    }
+
+    public function suggested(): JsonResponse
+    {
+        return $this->collection('suggested', $this->base()
+            ->orderByDesc('is_recommended')->orderByDesc('vote_average')->limit(20));
+    }
+
+    public function popularCasters(): JsonResponse
+    {
+        return response()->json(['popular_casters' => []])
+            ->header('Cache-Control', 'public, max-age=300');
+    }
+
+    public function latestEpisodes(): JsonResponse
+    {
+        return response()->json(['latest_episodes' => []])
+            ->header('Cache-Control', 'public, max-age=60');
+    }
+
+    public function genres(): JsonResponse
+    {
+        return response()->json([
+            'genres' => Genre::query()->orderBy('name')->get(['id', 'name']),
+        ])->header('Cache-Control', 'public, max-age=300');
     }
 
     public function movies(): JsonResponse
@@ -86,6 +142,6 @@ class ContentController extends Controller
     {
         return response()->json([
             $key => MediaResource::collection($query->get())->resolve(),
-        ]);
+        ])->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     }
 }
