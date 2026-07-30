@@ -37,6 +37,8 @@
             <a class="{{ request('type')==='live' ? 'active' : '' }}" href="{{ route('admin.media.index',['type'=>'live']) }}"><span class="icon">◉</span>البث المباشر</a>
             <a href="{{ route('admin.media.create') }}"><span class="icon">＋</span>إضافة محتوى</a>
             <a href="{{ route('admin.media.import') }}"><span class="icon">⇩</span>Bulk Import</a>
+            <a class="{{ request()->routeIs('admin.genres.*') ? 'active' : '' }}" href="{{ route('admin.genres.index') }}"><span class="icon">▦</span>التصنيفات</a>
+            <a class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><span class="icon">♙</span>المستخدمون</a>
             <div class="nav-section">التواصل والأتمتة</div>
             <a class="{{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}" href="{{ route('admin.notifications.create') }}"><span class="icon">♢</span>الإشعارات</a>
             <a href="{{ route('admin.dashboard') }}#movie-sync"><span class="icon">↻</span>مزامنة TMDB</a>

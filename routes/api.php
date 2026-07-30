@@ -65,6 +65,7 @@ Route::get('/media/previewscontent/{code}', [ContentController::class, 'previews
 Route::get('/media/suggestedcontent/{code}', [ContentController::class, 'suggested']);
 Route::get('/media/popularCasters/{code}', [ContentController::class, 'popularCasters']);
 Route::get('/series/popular/{code}', [ContentController::class, 'popularSeries']);
+Route::get('/series/recentscontent/{code}', [ContentController::class, 'series']);
 Route::get('/series/newEpisodescontent/{code}', [ContentController::class, 'latestEpisodes']);
 Route::get('/animes/newEpisodescontent/{code}', [ContentController::class, 'latestEpisodes']);
 Route::get('/genres/list/{code}', [ContentController::class, 'genres']);

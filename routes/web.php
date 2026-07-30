@@ -3,10 +3,12 @@
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\CatalogController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\GenreController;
 use App\Http\Controllers\Admin\ImportController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ScraperController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -27,6 +29,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('scraper/run', [ScraperController::class, 'run'])->name('scraper.run');
     Route::get('notifications', [NotificationController::class, 'create'])->name('notifications.create');
     Route::post('notifications', [NotificationController::class, 'store'])->name('notifications.store');
+    Route::get('genres', [GenreController::class, 'index'])->name('genres.index');
+    Route::post('genres', [GenreController::class, 'store'])->name('genres.store');
+    Route::put('genres/{genre}', [GenreController::class, 'update'])->name('genres.update');
+    Route::delete('genres/{genre}', [GenreController::class, 'destroy'])->name('genres.destroy');
+    Route::get('users', [UserController::class, 'index'])->name('users.index');
+    Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::resource('media', MediaController::class)
         ->parameters(['media' => 'media'])
         ->except(['show']);

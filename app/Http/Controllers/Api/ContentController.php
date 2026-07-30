@@ -93,8 +93,11 @@ class ContentController extends Controller
 
     public function genres(): JsonResponse
     {
+        $genres = Genre::query()->orderBy('name')->get(['id', 'name']);
+
         return response()->json([
-            'genres' => Genre::query()->orderBy('name')->get(['id', 'name']),
+            'categories' => $genres,
+            'genres' => $genres,
         ])->header('Cache-Control', 'public, max-age=300');
     }
 
