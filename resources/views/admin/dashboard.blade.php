@@ -19,7 +19,7 @@
 
 <div class="hero-panel" id="movie-sync">
     <div><span class="eyebrow">AUTOMATION</span><h2>تحديث الأفلام تلقائيًا من TMDB</h2><p>يتجاوز الأفلام الموجودة، يفحص رابط المشاهدة، ثم يضيف المحتوى الصالح مباشرة إلى التطبيق. التشغيل اليومي مضبوط على 50 فيلمًا.</p></div>
-    <form method="post" action="{{ route('admin.scraper.run') }}" onsubmit="return confirm('تشغيل مزامنة الأفلام الآن؟')">@csrf<button class="btn" type="submit">↻ تشغيل الآن</button></form>
+    <form method="post" action="{{ route('admin.scraper.run') }}" onsubmit="const button=this.querySelector('button');button.disabled=true;button.textContent='جاري التشغيل…';">@csrf<button class="btn" type="submit">↻ تشغيل الآن</button></form>
 </div>
 
 @if(session('scraper_output'))
