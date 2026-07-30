@@ -21,6 +21,8 @@ class MediaResource extends JsonResource
 
         return [
             'id' => (string) $this->id,
+            // Required by the legacy Android Featured model/adapters.
+            'featured_id' => $this->id,
             'tmdb_id' => $this->tmdb_id,
             'imdb_external_id' => $this->imdb_id,
             'title' => $this->title,
