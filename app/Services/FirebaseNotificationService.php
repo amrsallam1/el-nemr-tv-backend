@@ -10,7 +10,13 @@ class FirebaseNotificationService
 {
     public function configured(): bool
     {
-        return $this->credentials(false) !== null;
+        try {
+            return $this->credentials(false) !== null;
+        } catch (\Throwable) {
+            // The admin page must remain usable when the Railway variable is
+            // present but incomplete; sending will still report the exact error.
+            return false;
+        }
     }
 
     /** @param array<string, string> $data */

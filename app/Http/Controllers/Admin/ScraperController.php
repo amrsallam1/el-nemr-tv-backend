@@ -10,7 +10,9 @@ class ScraperController extends Controller
 {
     public function run(): RedirectResponse
     {
-        $exitCode = Artisan::call('movies:sync-popular');
+        // A manual admin action is allowed to recover from a stale lock left by
+        // an interrupted deployment/SSH run. Scheduled runs keep normal locking.
+        $exitCode = Artisan::call('movies:sync-popular', ['--force-unlock' => true]);
         $output = trim(Artisan::output());
         $status = $exitCode === 0 ? 'success' : 'error';
         $fallback = $exitCode === 0

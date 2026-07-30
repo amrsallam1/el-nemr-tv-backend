@@ -11,6 +11,7 @@ class SyncPopularMovies extends Command
     protected $signature = 'movies:sync-popular
         {--limit= : Number of new movies to add}
         {--repair-tmdb=* : Restore missing streams for specific existing TMDB IDs}
+        {--force-unlock : Release a stale sync lock before starting}
         {--dry-run : Check what would be added without changing the database}
         {--no-csv : Do not write the CSV backup}';
 
@@ -26,6 +27,10 @@ class SyncPopularMovies extends Command
             $this->error('The limit must be a valid positive integer within the configured maximum.');
 
             return self::INVALID;
+        }
+
+        if ((bool) $this->option('force-unlock')) {
+            Cache::lock('movies:sync-popular')->forceRelease();
         }
 
         $lock = Cache::lock('movies:sync-popular', (int) config('services.movie_sync.lock_seconds', 21600));
