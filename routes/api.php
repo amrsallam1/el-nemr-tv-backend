@@ -1,15 +1,16 @@
 <?php
 
-use App\Http\Controllers\Api\SettingsController;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ContentController;
-use App\Http\Controllers\Api\FavoriteController;
-use App\Http\Controllers\Api\WatchProgressController;
+use App\Http\Controllers\Api\Admin\EpisodeController as AdminEpisodeController;
 use App\Http\Controllers\Api\Admin\GenreController as AdminGenreController;
 use App\Http\Controllers\Api\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Api\Admin\SeasonController as AdminSeasonController;
-use App\Http\Controllers\Api\Admin\EpisodeController as AdminEpisodeController;
 use App\Http\Controllers\Api\Admin\StreamController as AdminStreamController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContentController;
+use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\WatchProgressController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => [
@@ -54,6 +55,19 @@ Route::get('/livetv/latest/{code}', [ContentController::class, 'live']);
 Route::get('/media/show/{media}/{code}', [ContentController::class, 'show']);
 Route::get('/media/detail/{media}/{code}', [ContentController::class, 'show']);
 Route::get('/plans/plans/{code}', fn () => response()->json(['plans' => []]));
+Route::get('/search/{query}/{code}', SearchController::class)
+    ->where('query', '[^/]+');
+
+Route::get('/media/pinnedcontent/{code}', [ContentController::class, 'pinned']);
+Route::get('/media/popularcontent/{code}', [ContentController::class, 'popular']);
+Route::get('/media/topcontent/{code}', [ContentController::class, 'top']);
+Route::get('/media/previewscontent/{code}', [ContentController::class, 'previews']);
+Route::get('/media/suggestedcontent/{code}', [ContentController::class, 'suggested']);
+Route::get('/media/popularCasters/{code}', [ContentController::class, 'popularCasters']);
+Route::get('/series/popular/{code}', [ContentController::class, 'popularSeries']);
+Route::get('/series/newEpisodescontent/{code}', [ContentController::class, 'latestEpisodes']);
+Route::get('/animes/newEpisodescontent/{code}', [ContentController::class, 'latestEpisodes']);
+Route::get('/genres/list/{code}', [ContentController::class, 'genres']);
 
 Route::prefix('admin')->middleware(['token.auth', 'admin'])->group(function () {
     Route::apiResource('media', AdminMediaController::class)->parameters(['media' => 'media']);

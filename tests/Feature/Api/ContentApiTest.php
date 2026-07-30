@@ -91,4 +91,44 @@ class ContentApiTest extends TestCase
             ->assertOk()
             ->assertExactJson(['plans' => []]);
     }
+
+    public function test_android_search_finds_published_titles_and_hides_drafts(): void
+    {
+        $published = Media::create([
+            'type' => 'movie',
+            'title' => 'Spider Man Cairo',
+            'slug' => 'spider-man-cairo',
+            'tmdb_id' => '12345',
+            'is_published' => true,
+        ]);
+        Media::create([
+            'type' => 'movie',
+            'title' => 'Spider Draft',
+            'slug' => 'spider-draft',
+            'is_published' => false,
+        ]);
+
+        $this->getJson('/api/search/spider/test')
+            ->assertOk()
+            ->assertJsonCount(1, 'search')
+            ->assertJsonPath('search.0.id', (string) $published->id)
+            ->assertJsonMissing(['title' => 'Spider Draft']);
+    }
+
+    public function test_legacy_home_sections_return_the_expected_keys(): void
+    {
+        Media::create([
+            'type' => 'movie',
+            'title' => 'Pinned Movie',
+            'slug' => 'pinned-movie',
+            'is_published' => true,
+            'is_pinned' => true,
+            'views' => 100,
+        ]);
+
+        $this->getJson('/api/media/pinnedcontent/test')->assertOk()->assertJsonCount(1, 'pinned');
+        $this->getJson('/api/media/popularcontent/test')->assertOk()->assertJsonStructure(['popular']);
+        $this->getJson('/api/media/topcontent/test')->assertOk()->assertJsonStructure(['top10']);
+        $this->getJson('/api/genres/list/test')->assertOk()->assertJsonStructure(['genres']);
+    }
 }
