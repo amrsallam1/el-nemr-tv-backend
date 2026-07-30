@@ -12,9 +12,11 @@ class MediaResource extends JsonResource
     public function toArray(Request $request): array
     {
         $type = match ($this->type) {
-            'series' => 'serie',
-            'live' => 'streaming',
-            default => $this->type,
+            'movie' => 'Movie',
+            'series' => 'Serie',
+            'anime' => 'Anime',
+            'live' => 'Streaming',
+            default => ucfirst((string) $this->type),
         };
 
         return [
