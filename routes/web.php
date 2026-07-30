@@ -15,6 +15,8 @@ Route::get('/', function () {
     return redirect()->route('admin.dashboard');
 });
 
+Route::view('/download', 'download')->name('download');
+
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [AuthController::class, 'create'])
         ->middleware('cache.headers:no_store;no_cache;must_revalidate;max_age=0')
