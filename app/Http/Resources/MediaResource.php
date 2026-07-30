@@ -41,7 +41,7 @@ class MediaResource extends JsonResource
             'genres' => $this->whenLoaded('genres', fn () => $this->genres->map(fn ($genre) => [
                 'id' => $genre->id,
                 'name' => $genre->name,
-            ])->values()),
+            ])->values()->all()),
             'seasons' => $this->whenLoaded('seasons'),
             'videos' => $this->whenLoaded('streams', fn () => $this->streams->map(fn ($stream) => [
                 'id' => $stream->id,

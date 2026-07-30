@@ -144,7 +144,7 @@ class ContentController extends Controller
 
     private function collection(string $key, Builder $query): JsonResponse
     {
-        $cacheKey = 'mobile-content:'.$key.':'.sha1($query->toSql().serialize($query->getBindings()));
+        $cacheKey = 'mobile-content:v2:'.$key.':'.sha1($query->toSql().serialize($query->getBindings()));
         $payload = Cache::remember($cacheKey, now()->addMinutes(5), fn () =>
             MediaResource::collection($query->get())->resolve()
         );
