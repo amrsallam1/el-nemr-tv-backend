@@ -5,6 +5,7 @@
   },
   "deploy": {
     "startCommand": "php artisan movies:sync-popular --no-interaction",
+    "cronSchedule": "0 0 * * *",
     "restartPolicyType": "NEVER"
   }
 }
