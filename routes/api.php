@@ -52,6 +52,8 @@ Route::get('/movies/latest/{code}', [ContentController::class, 'movies']);
 Route::get('/series/recents/{code}', [ContentController::class, 'series']);
 Route::get('/animes/recents/{code}', [ContentController::class, 'animes']);
 Route::get('/livetv/latest/{code}', [ContentController::class, 'live']);
+Route::get('/networks/list/{code}', fn () => response()->json(['networks' => []]));
+Route::get('/upcoming/latest/{code}', fn () => response()->json(['upcoming' => []]));
 Route::get('/media/show/{media}/{code}', [ContentController::class, 'show']);
 Route::get('/media/detail/{media}/{code}', [ContentController::class, 'show']);
 Route::get('/plans/plans/{code}', fn () => response()->json(['plans' => []]));
