@@ -129,6 +129,6 @@ class ContentApiTest extends TestCase
         $this->getJson('/api/media/pinnedcontent/test')->assertOk()->assertJsonCount(1, 'pinned');
         $this->getJson('/api/media/popularcontent/test')->assertOk()->assertJsonStructure(['popular']);
         $this->getJson('/api/media/topcontent/test')->assertOk()->assertJsonStructure(['top10']);
-        $this->getJson('/api/genres/list/test')->assertOk()->assertJsonStructure(['genres']);
+        $this->getJson('/api/genres/list/test')->assertOk()->assertJsonStructure(['categories', 'genres']);
     }
 }
