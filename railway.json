@@ -1,11 +1,11 @@
 {
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "npm install && npx playwright install --with-deps chromium"
+    "builder": "NIXPACKS"
   },
   "deploy": {
+    "preDeployCommand": "php artisan migrate --force && php artisan optimize:clear",
     "startCommand": "php artisan serve --host=0.0.0.0 --port=$PORT",
-    "healthcheckPath": "/",
+    "healthcheckPath": "/up",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }

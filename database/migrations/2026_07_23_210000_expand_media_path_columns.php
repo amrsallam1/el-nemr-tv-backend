@@ -1,21 +1,26 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE media ALTER COLUMN poster_path TYPE TEXT');
-        DB::statement('ALTER TABLE media ALTER COLUMN backdrop_path TYPE TEXT');
-        DB::statement('ALTER TABLE media ALTER COLUMN preview_path TYPE TEXT');
+        Schema::table('media', function (Blueprint $table) {
+            $table->text('poster_path')->nullable()->change();
+            $table->text('backdrop_path')->nullable()->change();
+            $table->text('preview_path')->nullable()->change();
+        });
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE media ALTER COLUMN poster_path TYPE VARCHAR(255)');
-        DB::statement('ALTER TABLE media ALTER COLUMN backdrop_path TYPE VARCHAR(255)');
-        DB::statement('ALTER TABLE media ALTER COLUMN preview_path TYPE VARCHAR(255)');
+        Schema::table('media', function (Blueprint $table) {
+            $table->string('poster_path')->nullable()->change();
+            $table->string('backdrop_path')->nullable()->change();
+            $table->string('preview_path')->nullable()->change();
+        });
     }
 };

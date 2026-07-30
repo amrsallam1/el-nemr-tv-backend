@@ -1,58 +1,69 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# El Nemr TV Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+باك إند Laravel لتطبيق El Nemr TV، وفيه لوحة تحكم وAPI واستيراد أفلام تلقائي من TMDB.
 
-## About Laravel
+## المتطلبات
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3 أو أحدث، مع `mbstring` و`pdo_mysql`.
+- MySQL للإنتاج.
+- Composer.
+- مفتاح TMDB API أو TMDB Access Token.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## الإعداد المحلي
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+php artisan migrate
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+ما تحطش أي مفتاح أو كلمة سر في Git. انسخ `.env.example` إلى `.env` واضبط القيم محليًا أو من Railway Variables.
 
-## Contributing
+## إضافة الأفلام تلقائيًا
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+تجربة من غير تعديل قاعدة البيانات:
 
-## Code of Conduct
+```bash
+php artisan movies:sync-popular --limit=5 --dry-run
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+تشغيل فعلي:
 
-## Security Vulnerabilities
+```bash
+php artisan movies:sync-popular --limit=5
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+الأمر بيعمل الآتي:
 
-## License
+1. يحمّل صفحات الأفلام الرائجة من TMDB.
+2. يتجاهل أي `type + tmdb_id` موجود، بما فيه المحتوى المحذوف Soft Delete.
+3. يكمل صفحات TMDB لحد ما يضيف العدد المطلوب من الأفلام الجديدة.
+4. يجرب مصادر المشاهدة بالترتيب ويحفظ أول رابط بيرد.
+5. يضيف الفيلم والرابط في transaction واحدة.
+6. يحفظ CSV تشخيصي محلي في `storage/app` لو اتضاف محتوى جديد.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+قاعدة البيانات عليها unique constraint لـ`type + tmdb_id`، والأمر عليه distributed lock، فإعادة تشغيله ما تعملش نسخ مكررة.
+
+ملف CSV المحلي مش تخزين دائم على Railway إلا لو ركبت Volume أو استخدمت S3. المحتوى نفسه بيتضاف مباشرة إلى قاعدة بيانات التطبيق ومش محتاج رفع CSV للوحة التحكم.
+
+## الجدولة على Railway
+
+راجع [railway/MOVIE_SYNC_SETUP_AR.md](railway/MOVIE_SYNC_SETUP_AR.md). الطريقة الأبسط هي Railway Cron Service باستخدام `railway.cron.json`.
+
+## الاختبارات
+
+```bash
+php artisan test
+```
+
+الاختبارات بتستخدم SQLite مؤقت وطلبات HTTP وهمية، ومش بتتصل بـTMDB أو مواقع المشاهدة الحقيقية.
+
+## ملاحظات توافقية
+
+الأمر القديم ده ما زال متاح كاختصار علشان زر لوحة التحكم والربط القديم:
+
+```bash
+php artisan scraper:run
+```
+
+وهو دلوقتي بيشغّل نفس منطق `movies:sync-popular` داخل Laravel؛ ملفات Node القديمة داخل `scraper/` مش داخلة في مسار التشغيل الجديد.

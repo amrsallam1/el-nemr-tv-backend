@@ -3,44 +3,23 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Process;
 
 class RunMovieScraper extends Command
 {
-    protected $signature = 'scraper:run {--path= : Absolute path to scraper.js} {--cwd= : Working directory for the scraper}';
+    protected $signature = 'scraper:run {--limit= : Number of new movies to add} {--dry-run : Do not change the database}';
 
-    protected $description = 'Run the external movie scraper from the admin panel';
+    protected $description = 'Backward-compatible alias for movies:sync-popular';
 
     public function handle(): int
     {
-        $bundledScriptPath = base_path('scraper/scraper.js');
-        $bundledWorkingDirectory = base_path('scraper');
-
-        $scriptPath = $this->option('path') ?: (is_file($bundledScriptPath) ? $bundledScriptPath : config('services.scraper.path'));
-        $workingDirectory = $this->option('cwd') ?: (is_dir($bundledWorkingDirectory) ? $bundledWorkingDirectory : config('services.scraper.cwd'));
-
-        if (! $scriptPath || ! is_file($scriptPath)) {
-            $this->error('Scraper script not found. Put scraper/scraper.js in the repo or set SCRAPER_SCRIPT_PATH.');
-            return self::FAILURE;
+        $arguments = [];
+        if ($this->option('limit') !== null) {
+            $arguments['--limit'] = $this->option('limit');
+        }
+        if ($this->option('dry-run')) {
+            $arguments['--dry-run'] = true;
         }
 
-        $workingDirectory = $workingDirectory ?: dirname($scriptPath);
-
-        if (! is_dir($workingDirectory)) {
-            $this->error('Scraper working directory not found. Put scraper files in the repo or set SCRAPER_WORKDIR.');
-            return self::FAILURE;
-        }
-
-        $process = Process::path($workingDirectory)->timeout(3600)->run(['node', $scriptPath]);
-
-        $this->line($process->output());
-
-        if ($process->failed()) {
-            $this->error($process->errorOutput());
-            return self::FAILURE;
-        }
-
-        $this->info('Scraper finished successfully.');
-        return self::SUCCESS;
+        return $this->call('movies:sync-popular', $arguments);
     }
 }
