@@ -8,6 +8,7 @@ use App\Models\Genre;
 use App\Models\Media;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class ContentController extends Controller
 {
@@ -143,8 +144,13 @@ class ContentController extends Controller
 
     private function collection(string $key, Builder $query): JsonResponse
     {
+        $cacheKey = 'mobile-content:'.$key.':'.sha1($query->toSql().serialize($query->getBindings()));
+        $payload = Cache::remember($cacheKey, now()->addMinutes(5), fn () =>
+            MediaResource::collection($query->get())->resolve()
+        );
+
         return response()->json([
-            $key => MediaResource::collection($query->get())->resolve(),
+            $key => $payload,
         ])->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     }
 }
