@@ -20,7 +20,7 @@ class UserController extends Controller
                     $query->where(fn ($nested) => $nested->where('name', 'like', $search)->orWhere('email', 'like', $search));
                 })
                 ->when($request->filled('status'), fn ($query) => $query->where('is_active', $request->string('status') === 'active'))
-                ->latest()->paginate(30)->withQueryString(),
+                ->latest()->simplePaginate(30)->withQueryString(),
         ]);
     }
 

@@ -7,6 +7,7 @@ use App\Models\Media;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 use Throwable;
 
@@ -16,7 +17,9 @@ class NotificationController extends Controller
     {
         return view('admin.notifications.create', [
             'configured' => $firebase->configured(),
-            'media' => Media::query()->where('is_published', true)->latest()->limit(100)->get(['id', 'title', 'name', 'type']),
+            'media' => Cache::remember('admin-notification-media:v1', now()->addMinutes(2), fn () =>
+                Media::query()->where('is_published', true)->latest()->limit(100)->get(['id', 'title', 'name', 'type'])
+            ),
         ]);
     }
 
