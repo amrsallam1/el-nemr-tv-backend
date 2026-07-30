@@ -14,6 +14,70 @@ use RuntimeException;
 class PopularMovieSyncService
 {
     /**
+     * Restore streams for specific movies that already exist in the catalog.
+     *
+     * @param  array<int, string|int>  $tmdbIds
+     * @param  callable(string): void|null  $logger
+     * @return array{requested: int, restored: int, already_had_stream: int, not_found: int, without_stream: int, failed: int}
+     */
+    public function backfill(array $tmdbIds, ?callable $logger = null): array
+    {
+        $settings = config('services.movie_sync', []);
+        $ids = collect($tmdbIds)
+            ->map(fn ($id) => trim((string) $id))
+            ->filter(fn ($id) => $id !== '' && ctype_digit($id))
+            ->unique()
+            ->values();
+        $report = ['requested' => $ids->count(), 'restored' => 0, 'already_had_stream' => 0, 'not_found' => 0, 'without_stream' => 0, 'failed' => 0];
+
+        foreach ($ids as $tmdbId) {
+            try {
+                $media = Media::query()->where('type', 'movie')->where('tmdb_id', $tmdbId)->first();
+                if (! $media) {
+                    $report['not_found']++;
+                    continue;
+                }
+                if ($media->streams()->where('is_active', true)->exists()) {
+                    $report['already_had_stream']++;
+                    continue;
+                }
+
+                $streamUrl = $this->findStream($tmdbId, $settings, $logger);
+                if ($streamUrl === null) {
+                    $report['without_stream']++;
+                    continue;
+                }
+
+                $restored = DB::transaction(function () use ($media, $streamUrl) {
+                    $locked = Media::query()->lockForUpdate()->find($media->id);
+                    if (! $locked || $locked->streams()->where('is_active', true)->exists()) {
+                        return false;
+                    }
+                    $locked->streams()->create([
+                        'name' => 'Server 1', 'url' => $streamUrl, 'embed' => true,
+                        'quality' => null, 'language' => null, 'is_active' => true, 'sort_order' => 0,
+                    ]);
+
+                    return true;
+                }, 3);
+
+                $restored ? $report['restored']++ : $report['already_had_stream']++;
+                if ($restored && $logger) {
+                    $logger('Restored stream: '.$media->title.' (TMDB '.$tmdbId.')');
+                }
+            } catch (\Throwable $error) {
+                report($error);
+                $report['failed']++;
+                if ($logger) {
+                    $logger("Failed TMDB {$tmdbId}: ".$this->safeError($error));
+                }
+            }
+        }
+
+        return $report;
+    }
+
+    /**
      * Import new popular movies and return a machine-readable run report.
      *
      * @param  callable(string): void|null  $logger
@@ -35,6 +99,7 @@ class PopularMovieSyncService
         $report = [
             'requested' => $limit,
             'created' => 0,
+            'backfilled' => 0,
             'existing' => 0,
             'without_stream' => 0,
             'adult_skipped' => 0,
@@ -63,12 +128,12 @@ class PopularMovieSyncService
                 ->map(fn ($id) => (string) $id)
                 ->unique()
                 ->values();
-            $existingIds = Media::withTrashed()
+            $existingMedia = Media::withTrashed()
                 ->where('type', 'movie')
                 ->whereIn('tmdb_id', $pageIds)
-                ->pluck('tmdb_id')
-                ->mapWithKeys(fn ($id) => [(string) $id => true])
-                ->all();
+                ->withCount(['streams as active_streams_count' => fn ($query) => $query->where('is_active', true)])
+                ->get()
+                ->keyBy(fn (Media $media) => (string) $media->tmdb_id);
 
             foreach ($items as $item) {
                 if ($report['created'] >= $limit) {
@@ -81,12 +146,6 @@ class PopularMovieSyncService
                 }
                 $seenThisRun[$tmdbId] = true;
 
-                if (isset($existingIds[$tmdbId])) {
-                    $report['existing']++;
-
-                    continue;
-                }
-
                 if (($item['adult'] ?? false) === true && ! (bool) ($settings['allow_adult'] ?? false)) {
                     $report['adult_skipped']++;
 
@@ -94,9 +153,52 @@ class PopularMovieSyncService
                 }
 
                 try {
+                    $existing = $existingMedia->get($tmdbId);
+                    if ($existing && (int) $existing->active_streams_count > 0) {
+                        $report['existing']++;
+
+                        continue;
+                    }
+
                     $streamUrl = $this->findStream($tmdbId, $settings, $logger);
                     if ($streamUrl === null && (bool) ($settings['require_stream'] ?? true)) {
                         $report['without_stream']++;
+
+                        continue;
+                    }
+
+                    if ($existing) {
+                        if (! $dryRun && $streamUrl !== null) {
+                            $backfilled = DB::transaction(function () use ($existing, $streamUrl) {
+                                $media = Media::withTrashed()->lockForUpdate()->find($existing->id);
+                                if (! $media || $media->streams()->where('is_active', true)->exists()) {
+                                    return false;
+                                }
+
+                                $media->streams()->create([
+                                    'name' => 'Server 1',
+                                    'url' => $streamUrl,
+                                    'embed' => true,
+                                    'quality' => null,
+                                    'language' => null,
+                                    'is_active' => true,
+                                    'sort_order' => 0,
+                                ]);
+
+                                return true;
+                            }, 3);
+
+                            if (! $backfilled) {
+                                $report['existing']++;
+
+                                continue;
+                            }
+                        }
+
+                        $report['backfilled']++;
+                        if ($logger) {
+                            $logger(($dryRun ? 'Would restore stream: ' : 'Restored stream: ').$existing->title.' (TMDB '.$tmdbId.')');
+                        }
 
                         continue;
                     }

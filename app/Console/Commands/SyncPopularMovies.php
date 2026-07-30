@@ -10,6 +10,7 @@ class SyncPopularMovies extends Command
 {
     protected $signature = 'movies:sync-popular
         {--limit= : Number of new movies to add}
+        {--repair-tmdb=* : Restore missing streams for specific existing TMDB IDs}
         {--dry-run : Check what would be added without changing the database}
         {--no-csv : Do not write the CSV backup}';
 
@@ -35,6 +36,22 @@ class SyncPopularMovies extends Command
         }
 
         try {
+            $repairIds = (array) $this->option('repair-tmdb');
+            if ($repairIds !== []) {
+                $report = $sync->backfill($repairIds, fn (string $message) => $this->line($message));
+                $this->newLine();
+                $this->table(['Metric', 'Count'], [
+                    ['Requested repairs', $report['requested']],
+                    ['Streams restored', $report['restored']],
+                    ['Already had stream', $report['already_had_stream']],
+                    ['Movie not found', $report['not_found']],
+                    ['No responding stream', $report['without_stream']],
+                    ['Failed', $report['failed']],
+                ]);
+
+                return $report['failed'] > 0 || $report['restored'] === 0 ? self::FAILURE : self::SUCCESS;
+            }
+
             $report = $sync->sync(
                 $limit,
                 (bool) $this->option('dry-run'),
@@ -46,6 +63,7 @@ class SyncPopularMovies extends Command
             $this->table(['Metric', 'Count'], [
                 ['Requested new movies', $report['requested']],
                 [$report['dry_run'] ? 'Would add' : 'Added', $report['created']],
+                [$report['dry_run'] ? 'Would restore streams' : 'Streams restored', $report['backfilled']],
                 ['Already existed', $report['existing']],
                 ['No responding stream', $report['without_stream']],
                 ['Adult skipped', $report['adult_skipped']],
