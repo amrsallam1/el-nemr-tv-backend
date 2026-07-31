@@ -24,7 +24,7 @@
 
 <div class="hero-panel" id="egyptian-sync">
     <div><span class="eyebrow">EGYPTIAN MOVIES</span><h2>إضافة أفلام مصرية</h2><p>يجلب أفلامًا مصرية جديدة من TMDB ويرسل إشعارًا للمستخدمين عند إضافة كل فيلم.</p></div>
-    <form method="post" action="{{ route('admin.scraper.egyptian') }}" onsubmit="const button=this.querySelector('button');button.disabled=true;button.textContent='جاري الإضافة…';">@csrf<button class="btn" type="submit">إضافة أفلام مصرية</button></form>
+    <form style="position:relative;z-index:5" method="post" action="{{ route('admin.scraper.egyptian') }}" onsubmit="const button=this.querySelector('button');button.disabled=true;button.textContent='جاري الإضافة…';">@csrf<button style="position:relative;z-index:6" class="btn" type="submit">إضافة أفلام مصرية</button></form>
 </div>
 
 @if(session('scraper_output'))
