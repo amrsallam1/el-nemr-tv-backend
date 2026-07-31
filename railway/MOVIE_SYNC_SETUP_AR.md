@@ -8,7 +8,7 @@
 
 ```env
 TMDB_API_KEY=your-key
-MOVIE_SYNC_MAX_MOVIES=5
+MOVIE_SYNC_MAX_MOVIES=50
 MOVIE_SYNC_MAX_PAGES=25
 MOVIE_SYNC_REQUIRE_STREAM=true
 CACHE_STORE=database
@@ -35,7 +35,7 @@ php artisan movies:sync-popular --no-interaction
 ## تجربة آمنة قبل التفعيل
 
 ```bash
-php artisan movies:sync-popular --limit=5 --dry-run
+php artisan movies:sync-popular --limit=50 --dry-run
 ```
 
 التجربة دي تفحص TMDB وروابط المشاهدة لكن ما بتضيفش أي بيانات.

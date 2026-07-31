@@ -24,13 +24,13 @@ php artisan serve
 تجربة من غير تعديل قاعدة البيانات:
 
 ```bash
-php artisan movies:sync-popular --limit=5 --dry-run
+php artisan movies:sync-popular --limit=50 --dry-run
 ```
 
 تشغيل فعلي:
 
 ```bash
-php artisan movies:sync-popular --limit=5
+php artisan movies:sync-popular --limit=50
 ```
 
 الأمر بيعمل الآتي:

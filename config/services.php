@@ -44,7 +44,7 @@ return [
         'enabled' => env('MOVIE_SYNC_ENABLED', false),
         'daily_at' => env('MOVIE_SYNC_DAILY_AT', '03:00'),
         'timezone' => env('MOVIE_SYNC_TIMEZONE', 'Africa/Cairo'),
-        'max_movies' => (int) env('MOVIE_SYNC_MAX_MOVIES', env('MAX_MOVIES', 5)),
+        'max_movies' => (int) env('MOVIE_SYNC_MAX_MOVIES', env('MAX_MOVIES', 50)),
         'max_allowed_movies' => 500,
         'max_pages' => (int) env('MOVIE_SYNC_MAX_PAGES', 25),
         'language' => env('TMDB_LANGUAGE', 'ar'),

@@ -47,25 +47,33 @@ class MediaResource extends JsonResource
                 'name' => $genre->name,
             ])->values()->all()),
             'seasons' => $this->whenLoaded('seasons'),
-            'videos' => $this->whenLoaded('streams', fn () => $this->streams->map(fn ($stream) => [
+            'videos' => $this->whenLoaded('streams', fn () => $this->streams->map(function ($stream) {
+                $link = (string) $stream->url;
+                // vsem.ru is frequently blocked by mobile networks. Use the
+                // configured public embed fallback for those legacy records.
+                if (preg_match('/vsem(?:bed|b)?\.ru/i', $link) && $this->tmdb_id) {
+                    $link = 'https://vidsrc.to/embed/movie/'.rawurlencode((string) $this->tmdb_id);
+                }
+                return [
                 'id' => $stream->id,
                 'name' => $stream->name,
                 'server' => $stream->name,
-                'link' => $stream->url,
+                'link' => $link,
                 'lang' => $stream->language,
                 'type' => $stream->quality,
-                'hls' => str_contains(strtolower($stream->url), '.m3u8') ? 1 : 0,
+                'hls' => str_contains(strtolower($link), '.m3u8') ? 1 : 0,
                 'header' => $stream->headers ? json_encode($stream->headers) : null,
                 'useragent' => null,
                 // Treat explicit embed streams, and common embed/player page URLs,
                 // as web pages instead of sending them to ExoPlayer as media files.
-                'embed' => ($stream->embed || preg_match('/(?:\/embed(?:[\/_-]|$)|\/iframe\/|[?&]embed=1)/i', $stream->url)) ? 1 : 0,
+                'embed' => ($stream->embed || preg_match('/(?:\/embed(?:[\/_-]|$)|\/iframe\/|[?&]embed=1)/i', $link)) ? 1 : 0,
                 'youtubelink' => 0,
                 'supported_hosts' => 0,
                 'external' => 0,
                 'linkpremuim' => 0,
                 'downloadonly' => 0,
-            ])->values()),
+                ];
+            })->values()),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

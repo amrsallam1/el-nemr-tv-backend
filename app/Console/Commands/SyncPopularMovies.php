@@ -21,7 +21,7 @@ class SyncPopularMovies extends Command
     {
         $limit = $this->option('limit') !== null
             ? filter_var($this->option('limit'), FILTER_VALIDATE_INT)
-            : (int) config('services.movie_sync.max_movies', 5);
+            : (int) config('services.movie_sync.max_movies', 50);
 
         if (! is_int($limit) || $limit < 1 || $limit > (int) config('services.movie_sync.max_allowed_movies', 500)) {
             $this->error('The limit must be a valid positive integer within the configured maximum.');
