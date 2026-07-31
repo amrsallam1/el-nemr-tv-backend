@@ -45,6 +45,11 @@ class DashboardController extends Controller
             ];
         });
 
+        // Discard stale/corrupt dashboard cache entries from older releases.
+        if (! isset($data['latest']) || ! is_iterable($data['latest'])) {
+            $data['latest'] = Media::latest()->limit(8)->get();
+        }
+
         return view('admin.dashboard', $data);
     }
 }
