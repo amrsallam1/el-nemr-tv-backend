@@ -83,9 +83,12 @@ class PopularMovieSyncService
      * @param  callable(string): void|null  $logger
      * @return array<string, mixed>
      */
-    public function sync(int $limit, bool $dryRun = false, bool $writeCsv = true, ?callable $logger = null): array
+    public function sync(int $limit, bool $dryRun = false, bool $writeCsv = true, ?callable $logger = null, string $source = 'english'): array
     {
         $settings = config('services.movie_sync', []);
+        $source = in_array($source, ['english', 'egyptian'], true) ? $source : 'english';
+        $settings['source'] = $source;
+        $settings['language'] = $source === 'egyptian' ? 'ar-SA' : 'en-US';
         $apiKey = trim((string) config('services.tmdb.key'));
         $accessToken = trim((string) config('services.tmdb.access_token'));
 
@@ -295,11 +298,20 @@ class PopularMovieSyncService
         }
 
         try {
-            $response = $request->get('https://api.themoviedb.org/3/movie/popular', [
+            $endpoint = ($settings['source'] ?? 'english') === 'egyptian'
+                ? 'https://api.themoviedb.org/3/discover/movie'
+                : 'https://api.themoviedb.org/3/movie/popular';
+            $params = [
                 ...($accessToken === '' ? ['api_key' => $apiKey] : []),
                 'language' => (string) ($settings['language'] ?? 'ar'),
                 'page' => $page,
-            ]);
+            ];
+            if (($settings['source'] ?? 'english') === 'egyptian') {
+                $params['with_origin_country'] = 'EG';
+                $params['sort_by'] = 'popularity.desc';
+                $params['with_original_language'] = 'ar';
+            }
+            $response = $request->get($endpoint, $params);
         } catch (ConnectionException) {
             throw new RuntimeException('Could not connect to TMDB after all retry attempts.');
         }

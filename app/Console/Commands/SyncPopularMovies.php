@@ -10,6 +10,7 @@ class SyncPopularMovies extends Command
 {
     protected $signature = 'movies:sync-popular
         {--limit= : Number of new movies to add}
+        {--source=english : Catalog source: english or egyptian}
         {--repair-tmdb=* : Restore missing streams for specific existing TMDB IDs}
         {--force-unlock : Release a stale sync lock before starting}
         {--dry-run : Check what would be added without changing the database}
@@ -62,6 +63,7 @@ class SyncPopularMovies extends Command
                 (bool) $this->option('dry-run'),
                 ! (bool) $this->option('no-csv'),
                 fn (string $message) => $this->line($message),
+                (string) $this->option('source'),
             );
 
             $this->newLine();
