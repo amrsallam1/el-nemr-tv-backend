@@ -22,6 +22,11 @@
     <form method="post" action="{{ route('admin.scraper.run') }}" onsubmit="const button=this.querySelector('button');button.disabled=true;button.textContent='جاري التشغيل…';">@csrf<button class="btn" type="submit">↻ تشغيل الآن</button></form>
 </div>
 
+<div class="hero-panel" id="egyptian-sync">
+    <div><span class="eyebrow">EGYPTIAN MOVIES</span><h2>إضافة أفلام مصرية</h2><p>يجلب أفلامًا مصرية جديدة من TMDB ويرسل إشعارًا للمستخدمين عند إضافة كل فيلم.</p></div>
+    <form method="post" action="{{ route('admin.scraper.egyptian') }}" onsubmit="const button=this.querySelector('button');button.disabled=true;button.textContent='جاري الإضافة…';">@csrf<button class="btn" type="submit">إضافة أفلام مصرية</button></form>
+</div>
+
 @if(session('scraper_output'))
 <div class="panel"><h2>نتيجة آخر تشغيل يدوي</h2><pre style="white-space:pre-wrap;word-break:break-word;margin:0;color:#344054;line-height:1.7">{{ session('scraper_output') }}</pre></div>
 @endif

@@ -16,4 +16,14 @@ class ScraperController extends Controller
 
         return back()->with('success', 'بدأت مزامنة الأفلام في الخلفية. يمكنك مغادرة الصفحة بأمان.');
     }
+    public function egyptian(): RedirectResponse
+    {
+        Artisan::queue('movies:sync-popular', [
+            '--force-unlock' => true,
+            '--source' => 'egyptian',
+            '--notify' => true,
+        ]);
+
+        return back()->with('success', 'بدأت مزامنة الأفلام المصرية مع إرسال الإشعارات.');
+    }
 }
