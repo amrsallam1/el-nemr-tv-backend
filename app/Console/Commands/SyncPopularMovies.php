@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Services\PopularMovieSyncService;
+use App\Services\FirebaseNotificationService;
+use App\Models\Media;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
@@ -11,6 +13,7 @@ class SyncPopularMovies extends Command
     protected $signature = 'movies:sync-popular
         {--limit= : Number of new movies to add}
         {--source=english : Catalog source: english or egyptian}
+        {--notify : Send a push notification for every newly added movie}
         {--repair-tmdb=* : Restore missing streams for specific existing TMDB IDs}
         {--force-unlock : Release a stale sync lock before starting}
         {--dry-run : Check what would be added without changing the database}
@@ -18,7 +21,7 @@ class SyncPopularMovies extends Command
 
     protected $description = 'Add new popular TMDB movies and their first responding stream URL';
 
-    public function handle(PopularMovieSyncService $sync): int
+    public function handle(PopularMovieSyncService $sync, FirebaseNotificationService $firebase): int
     {
         $limit = $this->option('limit') !== null
             ? filter_var($this->option('limit'), FILTER_VALIDATE_INT)
@@ -65,6 +68,24 @@ class SyncPopularMovies extends Command
                 fn (string $message) => $this->line($message),
                 (string) $this->option('source'),
             );
+
+            if ((bool) $this->option('notify') && ! (bool) $this->option('dry-run')) {
+                foreach ($report['movies'] as $movie) {
+                    try {
+                        $media = Media::query()->where('type', 'movie')->where('tmdb_id', $movie['tmdb_id'])->first();
+                        $firebase->sendToAll([
+                            'type' => '0', 'tmdb' => (string) ($media?->id ?? ''),
+                            'title' => 'فيلم جديد: '.$movie['title'],
+                            'message' => 'تمت إضافة فيلم جديد إلى El-Nemr TV',
+                            'image' => (string) ($movie['backdrop_url'] ?? $movie['poster_url'] ?? ''),
+                            'link' => '',
+                        ]);
+                        $this->line('Notification sent: '.$movie['title']);
+                    } catch (\Throwable $error) {
+                        $this->warn('Notification failed for '.$movie['title'].': '.$error->getMessage());
+                    }
+                }
+            }
 
             $this->newLine();
             $this->table(['Metric', 'Count'], [
