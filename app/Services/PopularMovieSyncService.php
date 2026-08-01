@@ -269,7 +269,9 @@ class PopularMovieSyncService
                         } catch (\Throwable $notificationError) {
                             // Notifications must never roll back a successful import.
                             report($notificationError);
-                            $logger?->('Notification failed for '.$payload['title'].': '.$this->safeError($notificationError));
+                            if ($logger !== null) {
+                                $logger('Notification failed for '.$payload['title'].': '.$this->safeError($notificationError));
+                            }
                         }
                     }
                     if ($logger) {
