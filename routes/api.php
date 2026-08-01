@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\SuggestionController;
 use App\Http\Controllers\Api\WatchProgressController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,7 @@ Route::get('/settings/{code}', SettingsController::class)
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('throttle:20,1');
+Route::post('/suggest/{code}', [SuggestionController::class, 'store'])->middleware('throttle:5,1');
 
 Route::middleware('token.auth')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);

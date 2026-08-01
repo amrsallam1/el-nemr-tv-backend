@@ -18,6 +18,7 @@ class SettingsController extends Controller
         return response()->json(array_replace(
             config('easyplex.public_settings'),
             $overrides,
+            ['telegram_url' => 'https://t.me/Elnemr_11222'],
         ));
     }
 }
