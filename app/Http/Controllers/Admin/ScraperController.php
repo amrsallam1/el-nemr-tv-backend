@@ -26,4 +26,11 @@ class ScraperController extends Controller
 
         return back()->with('success', 'بدأت مزامنة الأفلام المصرية مع إرسال الإشعارات.');
     }
+
+    public function egyptianSeries(): RedirectResponse
+    {
+        Artisan::queue('series:sync-egyptian', ['--limit' => 20]);
+
+        return back()->with('success', 'Egyptian series import started in the background.');
+    }
 }

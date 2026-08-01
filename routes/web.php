@@ -30,6 +30,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('media-import', [ImportController::class, 'store'])->name('media.import.store');
     Route::post('scraper/run', [ScraperController::class, 'run'])->name('scraper.run');
     Route::post('scraper/egyptian', [ScraperController::class, 'egyptian'])->name('scraper.egyptian');
+    Route::post('scraper/egyptian-series', [ScraperController::class, 'egyptianSeries'])->name('scraper.egyptian-series');
     Route::get('notifications', [NotificationController::class, 'create'])->name('notifications.create');
     Route::post('notifications', [NotificationController::class, 'store'])->name('notifications.store');
     Route::get('genres', [GenreController::class, 'index'])->name('genres.index');
