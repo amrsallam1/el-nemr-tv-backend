@@ -83,7 +83,7 @@ class PopularMovieSyncService
      * @param  callable(string): void|null  $logger
      * @return array<string, mixed>
      */
-    public function sync(int $limit, bool $dryRun = false, bool $writeCsv = true, ?callable $logger = null, string $source = 'english'): array
+    public function sync(int $limit, bool $dryRun = false, bool $writeCsv = true, ?callable $logger = null, string $source = 'english', ?callable $onCreated = null): array
     {
         $settings = config('services.movie_sync', []);
         $source = in_array($source, ['english', 'egyptian'], true) ? $source : 'english';
@@ -263,6 +263,15 @@ class PopularMovieSyncService
                         'language' => (string) ($item['original_language'] ?? ''),
                         'published' => '1',
                     ];
+                    if (! $dryRun && $onCreated !== null) {
+                        try {
+                            $onCreated($report['movies'][array_key_last($report['movies'])]);
+                        } catch (\Throwable $notificationError) {
+                            // Notifications must never roll back a successful import.
+                            report($notificationError);
+                            $logger?->('Notification failed for '.$payload['title'].': '.$this->safeError($notificationError));
+                        }
+                    }
                     if ($logger) {
                         $logger(($dryRun ? 'Would add: ' : 'Added: ').$payload['title'].' (TMDB '.$tmdbId.')');
                     }

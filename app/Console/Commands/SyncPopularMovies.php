@@ -67,25 +67,18 @@ class SyncPopularMovies extends Command
                 ! (bool) $this->option('no-csv'),
                 fn (string $message) => $this->line($message),
                 (string) $this->option('source'),
+                (bool) $this->option('notify') ? function (array $movie) use ($firebase): void {
+                    $media = Media::query()->where('type', 'movie')->where('tmdb_id', $movie['tmdb_id'])->first();
+                    $firebase->sendToAll([
+                        'type' => '0', 'tmdb' => (string) ($media?->id ?? ''),
+                        'title' => 'فيلم جديد: '.$movie['title'],
+                        'message' => 'تمت إضافة فيلم جديد إلى El-Nemr TV',
+                        'image' => (string) ($movie['backdrop_url'] ?? $movie['poster_url'] ?? ''),
+                        'link' => '',
+                    ]);
+                    $this->line('Notification sent: '.$movie['title']);
+                } : null,
             );
-
-            if ((bool) $this->option('notify') && ! (bool) $this->option('dry-run')) {
-                foreach ($report['movies'] as $movie) {
-                    try {
-                        $media = Media::query()->where('type', 'movie')->where('tmdb_id', $movie['tmdb_id'])->first();
-                        $firebase->sendToAll([
-                            'type' => '0', 'tmdb' => (string) ($media?->id ?? ''),
-                            'title' => 'فيلم جديد: '.$movie['title'],
-                            'message' => 'تمت إضافة فيلم جديد إلى El-Nemr TV',
-                            'image' => (string) ($movie['backdrop_url'] ?? $movie['poster_url'] ?? ''),
-                            'link' => '',
-                        ]);
-                        $this->line('Notification sent: '.$movie['title']);
-                    } catch (\Throwable $error) {
-                        $this->warn('Notification failed for '.$movie['title'].': '.$error->getMessage());
-                    }
-                }
-            }
 
             $this->newLine();
             $this->table(['Metric', 'Count'], [
