@@ -37,7 +37,7 @@ class MediaController extends Controller
                 ->when($sort === 'rating', fn ($query) => $query->orderByDesc('vote_average'))
                 ->when($sort === 'order', fn ($query) => $query->orderByDesc('sort_order'))
                 ->when(! in_array($sort, ['views', 'rating', 'order'], true), fn ($query) => $query->latest())
-                ->simplePaginate(20)->withQueryString(),
+                ->paginate(20)->withQueryString(),
         ]);
     }
 
