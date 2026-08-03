@@ -87,6 +87,7 @@ return [
         'retries' => (int) env('CONTENT_WORKER_RETRIES', 2),
         'lock_seconds' => (int) env('CONTENT_SYNC_LOCK_SECONDS', 3600),
         'playback_cache_seconds' => (int) env('CONTENT_PLAYBACK_CACHE_SECONDS', 120),
+        'sync_token' => env('CONTENT_SYNC_TOKEN'),
     ],
 
     'scraper' => [

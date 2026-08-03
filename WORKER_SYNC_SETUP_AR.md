@@ -29,6 +29,7 @@ CONTENT_WORKER_TIMEOUT_SECONDS=20
 CONTENT_WORKER_RETRIES=2
 CONTENT_SYNC_LOCK_SECONDS=3600
 CONTENT_PLAYBACK_CACHE_SECONDS=120
+CONTENT_SYNC_TOKEN=ضع-قيمة-عشوائية-طويلة-هنا
 ```
 
 ## النشر
@@ -51,6 +52,13 @@ php artisan elnemr:sync-worker --type=series --pages=1 --limit=10 --dry-run
 
 ```bash
 php artisan elnemr:sync-worker --type=all --pages=2 --limit=50
+```
+
+يمكن أيضًا تشغيل دفعة محدودة عبر endpoint الداخلي المحمي:
+
+```text
+POST /api/internal/content-sync
+Authorization: Bearer CONTENT_SYNC_TOKEN
 ```
 
 إعادة تشغيل الأمر لا تنشئ نسخًا مكررة؛ المطابقة تتم بواسطة `source + type + source_id`.
