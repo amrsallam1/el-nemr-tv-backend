@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Genre;
 use App\Models\Media;
+use App\Models\Season;
 use App\Models\Stream;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -58,6 +59,35 @@ class ContentApiTest extends TestCase
         ]);
 
         $this->getJson("/api/media/show/{$draft->id}/test")->assertNotFound();
+    }
+
+    public function test_legacy_series_detail_path_returns_seasons_and_episodes(): void
+    {
+        $series = Media::create([
+            'type' => 'series',
+            'title' => 'Egyptian Show',
+            'name' => 'Egyptian Show',
+            'slug' => 'egyptian-show',
+            'release_date' => '2025-03-01',
+            'is_published' => true,
+        ]);
+        $season = Season::create([
+            'media_id' => $series->id,
+            'season_number' => 1,
+            'name' => 'Season 1',
+        ]);
+        $season->episodes()->create([
+            'episode_number' => 1,
+            'name' => 'Episode 1',
+        ]);
+
+        $this->getJson("/api/series/show/{$series->id}/test")
+            ->assertOk()
+            ->assertJsonPath('id', (string) $series->id)
+            ->assertJsonPath('name', 'Egyptian Show')
+            ->assertJsonPath('first_air_date', '2025-03-01')
+            ->assertJsonPath('seasons.0.id', $season->id)
+            ->assertJsonPath('seasons.0.episodes.0.name', 'Episode 1');
     }
 
     public function test_movie_detail_matches_legacy_android_stream_shape(): void

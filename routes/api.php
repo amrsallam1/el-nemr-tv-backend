@@ -58,6 +58,10 @@ Route::get('/networks/list/{code}', fn () => response()->json(['networks' => []]
 Route::get('/upcoming/latest/{code}', fn () => response()->json(['upcoming' => []]));
 Route::get('/media/show/{media}/{code}', [ContentController::class, 'show']);
 Route::get('/media/detail/{media}/{code}', [ContentController::class, 'show']);
+// Legacy Android detail URLs. The current app still calls these paths when a
+// user opens a series or anime from a Home rail.
+Route::get('/series/show/{media}/{code}', [ContentController::class, 'show']);
+Route::get('/animes/show/{media}/{code}', [ContentController::class, 'show']);
 Route::get('/plans/plans/{code}', fn () => response()->json(['plans' => []]));
 Route::get('/search/{query}/{code}', SearchController::class)
     ->where('query', '[^/]+');

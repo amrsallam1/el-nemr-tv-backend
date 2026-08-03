@@ -41,6 +41,9 @@ class MediaResource extends JsonResource
             'views' => (string) $this->views,
             'runtime' => $this->runtime ? (string) $this->runtime : null,
             'release_date' => $this->release_date?->format('Y-m-d'),
+            'first_air_date' => $this->type === 'series'
+                ? $this->release_date?->format('Y-m-d')
+                : null,
             'premuim' => $this->is_premium ? 1 : 0,
             'genres' => $this->whenLoaded('genres', fn () => $this->genres->map(fn ($genre) => [
                 'id' => $genre->id,
