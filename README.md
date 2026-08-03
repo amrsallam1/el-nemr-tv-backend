@@ -1,5 +1,7 @@
 # El Nemr TV Backend
 
+لربط كتالوج مصرح به عبر Worker مع التطبيق، راجع [WORKER_SYNC_SETUP_AR.md](WORKER_SYNC_SETUP_AR.md).
+
 باك إند Laravel لتطبيق El Nemr TV، وفيه لوحة تحكم وAPI واستيراد أفلام تلقائي من TMDB.
 
 ## المتطلبات

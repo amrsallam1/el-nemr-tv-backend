@@ -51,7 +51,9 @@ class MediaResource extends JsonResource
             ])->values()->all()),
             'seasons' => $this->whenLoaded('seasons'),
             'videos' => $this->whenLoaded('streams', fn () => $this->streams->map(function ($stream) {
-                $link = (string) $stream->url;
+                $link = $stream->source_url
+                    ? route('playback.resolve', ['stream' => $stream->id])
+                    : (string) $stream->url;
                 // vsem.ru is frequently blocked by mobile networks. Use the
                 // configured public embed fallback for those legacy records.
                 if (preg_match('/vsem(?:bed|b)?\.ru/i', $link) && $this->tmdb_id) {

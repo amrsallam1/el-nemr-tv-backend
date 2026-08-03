@@ -15,3 +15,14 @@ if (config('services.movie_sync.enabled')) {
         ->withoutOverlapping(360)
         ->onOneServer();
 }
+
+if (config('services.content_worker.enabled')) {
+    Schedule::command('elnemr:sync-worker', [
+        '--type' => 'all',
+        '--pages' => (string) config('services.content_worker.pages', 2),
+        '--limit' => (string) config('services.content_worker.limit', 50),
+    ])->dailyAt((string) config('services.content_worker.daily_at', '04:00'))
+        ->timezone((string) config('services.content_worker.timezone', 'Africa/Cairo'))
+        ->withoutOverlapping(120)
+        ->onOneServer();
+}

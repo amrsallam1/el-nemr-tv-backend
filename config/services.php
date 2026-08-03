@@ -72,6 +72,23 @@ return [
         'topic' => env('FIREBASE_TOPIC', 'all'),
     ],
 
+    'content_worker' => [
+        'enabled' => env('CONTENT_SYNC_ENABLED', false),
+        'url' => env('CONTENT_WORKER_URL', 'https://akwam-stream-fetcher.meroo3292.workers.dev/'),
+        'catalog_origin' => env('CONTENT_CATALOG_ORIGIN', 'https://akwam.it'),
+        'allowed_source_hosts' => array_values(array_filter(array_map('trim', explode(',', env('CONTENT_ALLOWED_SOURCE_HOSTS', 'akwam.it,www.akwam.it'))))),
+        'daily_at' => env('CONTENT_SYNC_DAILY_AT', '04:00'),
+        'timezone' => env('CONTENT_SYNC_TIMEZONE', 'Africa/Cairo'),
+        'pages' => (int) env('CONTENT_SYNC_PAGES', 2),
+        'limit' => (int) env('CONTENT_SYNC_LIMIT', 50),
+        'max_pages' => (int) env('CONTENT_SYNC_MAX_PAGES', 10),
+        'max_items' => (int) env('CONTENT_SYNC_MAX_ITEMS', 200),
+        'timeout_seconds' => (int) env('CONTENT_WORKER_TIMEOUT_SECONDS', 20),
+        'retries' => (int) env('CONTENT_WORKER_RETRIES', 2),
+        'lock_seconds' => (int) env('CONTENT_SYNC_LOCK_SECONDS', 3600),
+        'playback_cache_seconds' => (int) env('CONTENT_PLAYBACK_CACHE_SECONDS', 120),
+    ],
+
     'scraper' => [
         'path' => env('SCRAPER_SCRIPT_PATH'),
         'cwd' => env('SCRAPER_WORKDIR'),

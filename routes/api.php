@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\StreamController as AdminStreamController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\PlaybackController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SuggestionController;
@@ -58,6 +59,9 @@ Route::get('/networks/list/{code}', fn () => response()->json(['networks' => []]
 Route::get('/upcoming/latest/{code}', fn () => response()->json(['upcoming' => []]));
 Route::get('/media/show/{media}/{code}', [ContentController::class, 'show']);
 Route::get('/media/detail/{media}/{code}', [ContentController::class, 'show']);
+Route::get('/play/{stream}', PlaybackController::class)
+    ->name('playback.resolve')
+    ->middleware('throttle:120,1');
 // Legacy Android detail URLs. The current app still calls these paths when a
 // user opens a series or anime from a Home rail.
 Route::get('/series/show/{media}/{code}', [ContentController::class, 'show']);

@@ -4,8 +4,8 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "php artisan movies:sync-popular --no-interaction",
-    "cronSchedule": "0 0 * * *",
+    "startCommand": "php artisan elnemr:sync-worker --type=all --pages=2 --limit=50 --no-interaction",
+    "cronSchedule": "0 1 * * *",
     "restartPolicyType": "NEVER"
   }
 }
