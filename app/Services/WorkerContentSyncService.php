@@ -12,7 +12,7 @@ use RuntimeException;
 class WorkerContentSyncService
 {
     /** @return array<string, int|bool|string> */
-    public function sync(string $type, int $pages, int $limit, bool $dryRun = false, ?callable $logger = null): array
+    public function sync(string $type, int $pages, int $limit, bool $dryRun = false, ?callable $logger = null, array $years = []): array
     {
         if (! in_array($type, ['movies', 'series'], true)) {
             throw new RuntimeException('Type must be movies or series.');
@@ -59,7 +59,18 @@ class WorkerContentSyncService
 
                     if (! $dryRun) {
                         $details = $this->details($identity['url'], $settings);
-                        $this->persist($identity, $item, $details);
+                        $year = $this->detectYear($item, $details);
+                        if ($year === null && $type === 'series' && isset($details['episodes'][0]['link'])) {
+                            $year = $this->detectYear([], $this->details((string) $details['episodes'][0]['link'], $settings));
+                        }
+                        if ($years !== [] && ($year === null || ! in_array($year, $years, true))) {
+                            $report['skipped']++;
+                            if ($logger) {
+                                $logger('Skipped outside requested years: '.$identity['title']);
+                            }
+                            continue;
+                        }
+                        $this->persist($identity, $item, $details, $year);
                     }
 
                     $exists ? $report['updated']++ : $report['created']++;
@@ -147,9 +158,9 @@ class WorkerContentSyncService
         ];
     }
 
-    private function persist(array $identity, array $item, array $details): void
+    private function persist(array $identity, array $item, array $details, ?int $year): void
     {
-        DB::transaction(function () use ($identity, $item, $details): void {
+        DB::transaction(function () use ($identity, $item, $details, $year): void {
             $media = Media::withTrashed()->updateOrCreate(
                 [
                     'source' => 'content-worker', 'type' => $identity['media_type'],
@@ -161,6 +172,7 @@ class WorkerContentSyncService
                     'slug' => $this->slug($identity),
                     'source_url' => $identity['url'],
                     'poster_path' => filter_var($item['img'] ?? null, FILTER_VALIDATE_URL) ?: null,
+                    'release_date' => $year ? $year.'-01-01' : null,
                     'is_published' => true,
                     'metadata' => [
                         'automatic_import' => true,
@@ -193,6 +205,24 @@ class WorkerContentSyncService
                 $this->upsertWorkerStream($media, null, $identity['url']);
             }
         }, 3);
+    }
+
+    private function detectYear(array $item, array $details): ?int
+    {
+        $values = [
+            $item['title'] ?? null,
+            $item['href'] ?? null,
+            $details['movie_title'] ?? null,
+            $details['media_src'] ?? null,
+            $details['download_src'] ?? null,
+        ];
+        foreach ($values as $value) {
+            if (preg_match('/(?:^|\D)(20\d{2})(?:\D|$)/', (string) $value, $match)) {
+                return (int) $match[1];
+            }
+        }
+
+        return null;
     }
 
     private function upsertWorkerStream(Media $media, ?int $episodeId, string $sourceUrl): void

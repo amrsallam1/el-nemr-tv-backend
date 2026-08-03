@@ -23,6 +23,8 @@ class InternalContentSyncController extends Controller
             'pages' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'limit' => ['sometimes', 'integer', 'min:1', 'max:200'],
             'dry_run' => ['sometimes', 'boolean'],
+            'years' => ['sometimes', 'array', 'max:5'],
+            'years.*' => ['integer', 'min:2000', 'max:2100'],
         ]);
         $types = ($validated['type'] ?? 'all') === 'all'
             ? ['movies', 'series']
@@ -34,6 +36,8 @@ class InternalContentSyncController extends Controller
                 (int) ($validated['pages'] ?? 1),
                 (int) ($validated['limit'] ?? 10),
                 (bool) ($validated['dry_run'] ?? false),
+                null,
+                array_values(array_unique($validated['years'] ?? [])),
             );
         }
 

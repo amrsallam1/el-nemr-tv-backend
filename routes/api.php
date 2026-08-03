@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\InternalContentSyncController;
+use App\Http\Controllers\Api\InternalContentResetController;
 use App\Http\Controllers\Api\PlaybackController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingsController;
@@ -23,6 +24,8 @@ Route::get('/health', fn () => [
 ]);
 
 Route::post('/internal/content-sync', InternalContentSyncController::class)
+    ->middleware('throttle:3,1');
+Route::post('/internal/content-reset', InternalContentResetController::class)
     ->middleware('throttle:3,1');
 
 // The code parameter is retained for compatibility with the existing Android app.
