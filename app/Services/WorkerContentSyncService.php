@@ -12,10 +12,13 @@ use RuntimeException;
 class WorkerContentSyncService
 {
     /** @return array<string, int|bool|string> */
-    public function sync(string $type, int $pages, int $limit, bool $dryRun = false, ?callable $logger = null, array $years = []): array
+    public function sync(string $type, int $pages, int $limit, bool $dryRun = false, ?callable $logger = null, array $years = [], string $language = 'all', bool $targetNew = false): array
     {
         if (! in_array($type, ['movies', 'series'], true)) {
             throw new RuntimeException('Type must be movies or series.');
+        }
+        if (! in_array($language, ['all', 'arabic', 'english'], true)) {
+            throw new RuntimeException('Language must be all, arabic or english.');
         }
 
         $settings = config('services.content_worker', []);
@@ -28,18 +31,18 @@ class WorkerContentSyncService
 
         $report = [
             'type' => $type, 'dry_run' => $dryRun, 'scanned' => 0, 'created' => 0,
-            'updated' => 0, 'skipped' => 0, 'failed' => 0,
+            'updated' => 0, 'skipped' => 0, 'failed' => 0, 'items' => [],
         ];
         $seen = [];
 
-        for ($page = 1; $page <= $pages && $report['scanned'] < $limit; $page++) {
+        for ($page = 1; $page <= $pages && $this->shouldContinue($report, $limit, $maxItems, $targetNew); $page++) {
             $items = $this->catalogPage($type, $page, $settings);
             if ($items === []) {
                 break;
             }
 
             foreach ($items as $item) {
-                if ($report['scanned'] >= $limit) {
+                if (! $this->shouldContinue($report, $limit, $maxItems, $targetNew)) {
                     break 2;
                 }
 
@@ -49,6 +52,11 @@ class WorkerContentSyncService
                     continue;
                 }
                 $seen[$identity['key']] = true;
+                if (! $this->matchesLanguage($identity['title'], $language)) {
+                    $report['skipped']++;
+                    $report['items'][] = $this->itemReport($identity, 'skipped', 'language_filter');
+                    continue;
+                }
                 $report['scanned']++;
 
                 try {
@@ -66,6 +74,7 @@ class WorkerContentSyncService
                         }
                         if ($years !== [] && ($year === null || ! in_array($year, $years, true))) {
                             $report['skipped']++;
+                            $report['items'][] = $this->itemReport($identity, 'skipped', $year === null ? 'year_unknown' : 'year_filter', $year);
                             if ($logger) {
                                 $logger('Skipped outside requested years: '.$identity['title']);
                             }
@@ -75,12 +84,14 @@ class WorkerContentSyncService
                     }
 
                     $exists ? $report['updated']++ : $report['created']++;
+                    $report['items'][] = $this->itemReport($identity, $dryRun ? 'preview' : ($exists ? 'updated' : 'created'), null, $year ?? null);
                     if ($logger) {
                         $logger(($dryRun ? 'Would sync: ' : 'Synced: ').$identity['title']);
                     }
                 } catch (\Throwable $error) {
                     report($error);
                     $report['failed']++;
+                    $report['items'][] = $this->itemReport($identity, 'failed', $error instanceof RuntimeException ? $error->getMessage() : $error::class);
                     if ($logger) {
                         $logger('Failed '.$identity['title'].': '.($error instanceof RuntimeException ? $error->getMessage() : $error::class));
                     }
@@ -89,6 +100,33 @@ class WorkerContentSyncService
         }
 
         return $report;
+    }
+
+    private function shouldContinue(array $report, int $limit, int $maxItems, bool $targetNew): bool
+    {
+        return $report['scanned'] < $maxItems
+            && ($targetNew ? $report['created'] < $limit : $report['scanned'] < $limit);
+    }
+
+    private function matchesLanguage(string $title, string $language): bool
+    {
+        if ($language === 'all') {
+            return true;
+        }
+        $arabic = preg_match('/[\x{0600}-\x{06FF}]/u', $title) === 1;
+        return $language === 'arabic' ? $arabic : ! $arabic;
+    }
+
+    private function itemReport(array $identity, string $status, ?string $reason = null, ?int $year = null): array
+    {
+        return array_filter([
+            'title' => $identity['title'],
+            'type' => $identity['media_type'],
+            'source_id' => $identity['source_id'],
+            'status' => $status,
+            'reason' => $reason,
+            'year' => $year,
+        ], fn ($value) => $value !== null);
     }
 
     /** @return array<int, array<string, mixed>> */

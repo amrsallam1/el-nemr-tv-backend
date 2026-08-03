@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ScraperController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WorkerImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -28,6 +29,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('media-import', [ImportController::class, 'create'])->name('media.import');
     Route::post('media-import', [ImportController::class, 'store'])->name('media.import.store');
+    Route::get('worker-import', [WorkerImportController::class, 'index'])->name('worker-import.index');
+    Route::post('worker-import', [WorkerImportController::class, 'store'])->name('worker-import.store');
+    Route::get('worker-import/{run}/status', [WorkerImportController::class, 'status'])->name('worker-import.status');
     Route::post('scraper/run', [ScraperController::class, 'run'])->name('scraper.run');
     Route::post('scraper/egyptian', [ScraperController::class, 'egyptian'])->name('scraper.egyptian');
     Route::post('scraper/egyptian-series', [ScraperController::class, 'egyptianSeries'])->name('scraper.egyptian-series');

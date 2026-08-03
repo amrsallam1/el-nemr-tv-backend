@@ -37,6 +37,7 @@
             <a class="{{ request('type')==='live' ? 'active' : '' }}" href="{{ route('admin.media.index',['type'=>'live']) }}"><span class="icon">◉</span>البث المباشر</a>
             <a href="{{ route('admin.media.create') }}"><span class="icon">＋</span>إضافة محتوى</a>
             <a href="{{ route('admin.media.import') }}"><span class="icon">⇩</span>Bulk Import</a>
+            <a class="{{ request()->routeIs('admin.worker-import.*') ? 'active' : '' }}" href="{{ route('admin.worker-import.index') }}"><span class="icon">↻</span>استيراد Worker</a>
             <a class="{{ request()->routeIs('admin.genres.*') ? 'active' : '' }}" href="{{ route('admin.genres.index') }}"><span class="icon">▦</span>التصنيفات</a>
             <a class="{{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><span class="icon">♙</span>المستخدمون</a>
             <div class="nav-section">التواصل والأتمتة</div>
