@@ -21,13 +21,13 @@ class PlaybackController extends Controller
             fn () => $this->resolve((string) $stream->source_url),
         );
 
-        return redirect()->away($this->workerProxyUrl($mediaUrl), 302, [
+        return redirect()->away($this->androidCompatibleUrl($mediaUrl), 302, [
             'Cache-Control' => 'private, no-store, max-age=0',
             'Referrer-Policy' => 'no-referrer',
         ]);
     }
 
-    private function workerProxyUrl(string $mediaUrl): string
+    private function androidCompatibleUrl(string $mediaUrl): string
     {
         $host = strtolower((string) parse_url($mediaUrl, PHP_URL_HOST));
         $allowedSuffixes = array_map('strtolower', (array) config('services.content_worker.allowed_media_host_suffixes', []));
@@ -36,27 +36,10 @@ class PlaybackController extends Controller
         );
         abort_unless($approved, 403, 'The resolved media host is not approved.');
 
-        $workerUrl = rtrim((string) config('services.content_worker.url'), '/').'/';
-        $secret = (string) config('services.content_worker.playback_secret');
-        $supportsProxy = Cache::remember('worker-playback:proxy-supported:v1', now()->addSeconds(60), function () use ($workerUrl): bool {
-            try {
-                $response = Http::acceptJson()->timeout(5)->get($workerUrl);
-                return $response->successful() && version_compare((string) $response->json('version'), '3.1', '>=');
-            } catch (ConnectionException) {
-                return false;
-            }
-        });
-        if (! $supportsProxy || $secret === '') {
-            return $mediaUrl;
-        }
-
-        $expires = now()->addMinutes(30)->timestamp;
-        return $workerUrl.'?'.http_build_query([
-            'action' => 'proxy',
-            'url' => $mediaUrl,
-            'expires' => $expires,
-            'sig' => hash_hmac('sha256', $mediaUrl."\n".$expires, $secret),
-        ], '', '&', PHP_QUERY_RFC3986);
+        // downet's HTTPS certificate is rejected by Android and Cloudflare,
+        // while the same restricted host serves HTTP with proper byte ranges.
+        // The Android app explicitly allows cleartext media traffic.
+        return preg_replace('~^https://~i', 'http://', $mediaUrl) ?: $mediaUrl;
     }
 
     private function resolve(string $sourceUrl): string

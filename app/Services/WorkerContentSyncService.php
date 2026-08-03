@@ -173,6 +173,7 @@ class WorkerContentSyncService
                     'slug' => $this->slug($identity),
                     'source_url' => $identity['url'],
                     'poster_path' => filter_var($item['img'] ?? null, FILTER_VALIDATE_URL) ?: null,
+                    'backdrop_path' => filter_var($item['img'] ?? null, FILTER_VALIDATE_URL) ?: null,
                     'release_date' => $year ? $year.'-01-01' : null,
                     'is_published' => true,
                     'metadata' => [
