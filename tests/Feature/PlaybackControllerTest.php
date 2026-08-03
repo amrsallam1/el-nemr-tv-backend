@@ -11,22 +11,21 @@ class PlaybackControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_proxies_a_fresh_media_url_without_exposing_its_tls_to_android(): void
+    public function test_it_returns_a_signed_worker_proxy_url_without_exposing_source_tls_to_android(): void
     {
         config()->set('services.content_worker.url', 'https://worker.example/');
         config()->set('services.content_worker.allowed_source_hosts', ['catalog.example']);
         config()->set('services.content_worker.allowed_media_host_suffixes', ['media.example']);
-        Http::fake([
-            'https://worker.example/*' => Http::response([
+        config()->set('services.content_worker.playback_secret', 'test-secret');
+        Http::fake(function ($request) {
+            if ($request->url() === 'https://worker.example/') {
+                return Http::response(['status' => 'online', 'version' => '3.1']);
+            }
+            return Http::response([
                 'status' => 'success',
                 'media_src' => 'https://media.example/fresh-token/video.mp4',
-            ]),
-            'https://media.example/*' => Http::response('video-bytes', 206, [
-                'Content-Type' => 'video/mp4',
-                'Content-Range' => 'bytes 0-10/100',
-                'Accept-Ranges' => 'bytes',
-            ]),
-        ]);
+            ]);
+        });
         $media = Media::create([
             'type' => 'movie', 'title' => 'Authorized Movie', 'slug' => 'authorized-movie',
             'is_published' => true,
@@ -36,15 +35,15 @@ class PlaybackControllerTest extends TestCase
             'source_url' => 'https://catalog.example/movie/123/movie', 'is_active' => true,
         ]);
 
-        $this->withHeader('Range', 'bytes=0-10')
-            ->get('/api/play/'.$stream->id)
-            ->assertStatus(206)
-            ->assertHeader('Content-Type', 'video/mp4')
-            ->assertHeader('Content-Range', 'bytes 0-10/100')
-            ->assertStreamedContent('video-bytes');
-
-        Http::assertSent(fn ($request) => $request->url() === 'https://media.example/fresh-token/video.mp4'
-            && $request->hasHeader('Range', 'bytes=0-10'));
+        $response = $this->get('/api/play/'.$stream->id)->assertStatus(302);
+        $location = $response->headers->get('Location');
+        $this->assertStringStartsWith('https://worker.example/?action=proxy&', $location);
+        parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+        $this->assertSame('https://media.example/fresh-token/video.mp4', $query['url']);
+        $this->assertSame(
+            hash_hmac('sha256', $query['url']."\n".$query['expires'], 'test-secret'),
+            $query['sig']
+        );
     }
 
     public function test_it_rejects_unapproved_source_hosts(): void

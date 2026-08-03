@@ -78,7 +78,7 @@ return [
         'catalog_origin' => env('CONTENT_CATALOG_ORIGIN', 'https://akwam.it'),
         'allowed_source_hosts' => array_values(array_filter(array_map('trim', explode(',', env('CONTENT_ALLOWED_SOURCE_HOSTS', 'akwam.it,www.akwam.it'))))),
         'allowed_media_host_suffixes' => array_values(array_filter(array_map('trim', explode(',', env('CONTENT_ALLOWED_MEDIA_HOST_SUFFIXES', 'downet.net'))))),
-        'playback_user_agent' => env('CONTENT_PLAYBACK_USER_AGENT', 'Mozilla/5.0 (Linux; Android 10; El-Nemr-TV) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36'),
+        'playback_secret' => env('CONTENT_PLAYBACK_SECRET'),
         'daily_at' => env('CONTENT_SYNC_DAILY_AT', '04:00'),
         'timezone' => env('CONTENT_SYNC_TIMEZONE', 'Africa/Cairo'),
         'pages' => (int) env('CONTENT_SYNC_PAGES', 2),
