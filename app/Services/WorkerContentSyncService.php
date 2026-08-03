@@ -19,6 +19,7 @@ class WorkerContentSyncService
         }
 
         $settings = config('services.content_worker', []);
+        $years = $years !== [] ? $years : array_values(array_unique($settings['allowed_years'] ?? []));
         $maxPages = (int) ($settings['max_pages'] ?? 10);
         $maxItems = (int) ($settings['max_items'] ?? 200);
         if ($pages < 1 || $pages > $maxPages || $limit < 1 || $limit > $maxItems) {
