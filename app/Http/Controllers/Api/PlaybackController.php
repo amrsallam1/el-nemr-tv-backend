@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Stream;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PlaybackController extends Controller
 {
-    public function __invoke(Stream $stream): RedirectResponse
+    public function __invoke(Request $request, Stream $stream): StreamedResponse
     {
         abort_unless($stream->is_active && $stream->source_url, 404);
 
@@ -21,10 +22,57 @@ class PlaybackController extends Controller
             fn () => $this->resolve((string) $stream->source_url),
         );
 
-        return redirect()->away($mediaUrl, 302, [
-            'Cache-Control' => 'private, no-store, max-age=0',
-            'Referrer-Policy' => 'no-referrer',
-        ]);
+        return $this->proxy($request, $mediaUrl, (string) $stream->source_url);
+    }
+
+    private function proxy(Request $request, string $mediaUrl, string $sourceUrl): StreamedResponse
+    {
+        $host = strtolower((string) parse_url($mediaUrl, PHP_URL_HOST));
+        $allowedSuffixes = array_map('strtolower', (array) config('services.content_worker.allowed_media_host_suffixes', []));
+        $approved = collect($allowedSuffixes)->contains(
+            fn (string $suffix) => $suffix !== '' && ($host === $suffix || str_ends_with($host, '.'.$suffix))
+        );
+        abort_unless($approved, 403, 'The resolved media host is not approved.');
+
+        $headers = [
+            'Accept' => '*/*',
+            'Referer' => $sourceUrl,
+            'User-Agent' => (string) config('services.content_worker.playback_user_agent'),
+        ];
+        if ($request->hasHeader('Range')) {
+            $headers['Range'] = $request->header('Range');
+        }
+
+        try {
+            $upstream = Http::withHeaders($headers)
+                ->withOptions(['stream' => true, 'connect_timeout' => 15, 'timeout' => 0])
+                ->send($request->isMethod('HEAD') ? 'HEAD' : 'GET', $mediaUrl);
+        } catch (ConnectionException) {
+            Cache::forget('worker-playback:v1:'.$request->route('stream')->id);
+            abort(502, 'Could not connect to the media server.');
+        }
+
+        abort_unless(in_array($upstream->status(), [200, 206], true), 502, 'Media server returned HTTP '.$upstream->status().'.');
+
+        $responseHeaders = ['Cache-Control' => 'private, no-store, max-age=0'];
+        foreach (['Content-Type', 'Content-Length', 'Content-Range', 'Accept-Ranges', 'ETag', 'Last-Modified'] as $name) {
+            if ($value = $upstream->header($name)) {
+                $responseHeaders[$name] = $value;
+            }
+        }
+
+        $body = $upstream->toPsrResponse()->getBody();
+
+        return response()->stream(function () use ($body, $request): void {
+            if ($request->isMethod('HEAD')) {
+                return;
+            }
+            while (! $body->eof() && ! connection_aborted()) {
+                echo $body->read(64 * 1024);
+                flush();
+            }
+            $body->close();
+        }, $upstream->status(), $responseHeaders);
     }
 
     private function resolve(string $sourceUrl): string
