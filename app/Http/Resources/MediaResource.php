@@ -80,12 +80,14 @@ class MediaResource extends JsonResource
                 ];
             })->values()),
             'downloads' => $this->whenLoaded('streams', fn () => $this->streams
-                ->whereNotNull('source_url')
+                ->filter(fn ($stream) => filled($stream->source_url) || filled($stream->url))
                 ->map(fn ($stream) => [
                     'id' => $stream->id,
                     'name' => 'تحميل داخل التطبيق',
                     'server' => 'El-Nemr TV',
-                    'link' => route('playback.resolve', ['stream' => $stream->id]),
+                    'link' => $stream->source_url
+                        ? route('playback.resolve', ['stream' => $stream->id])
+                        : (string) $stream->url,
                     'lang' => $stream->language,
                     'type' => $stream->quality,
                     'hls' => 0,

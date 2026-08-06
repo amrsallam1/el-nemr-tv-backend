@@ -11,6 +11,51 @@ use RuntimeException;
 
 class WorkerContentSyncService
 {
+    /**
+     * Imports matching Worker results on demand so legacy Android search can
+     * keep using normal Media IDs, details, streams and download records.
+     *
+     * @return array{created:int,updated:int,failed:int}
+     */
+    public function syncSearchResults(string $query, int $limit = 30): array
+    {
+        $query = trim($query);
+        if ($query === '' || mb_strlen($query) > 120) {
+            return ['created' => 0, 'updated' => 0, 'failed' => 0];
+        }
+
+        $settings = config('services.content_worker', []);
+        $payload = $this->workerRequest(['action' => 'search', 'q' => $query], $settings);
+        $items = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+        $report = ['created' => 0, 'updated' => 0, 'failed' => 0];
+
+        foreach (array_slice($items, 0, max(1, min($limit, 50))) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $path = (string) (parse_url((string) ($item['href'] ?? ''), PHP_URL_PATH) ?? '');
+            $type = str_starts_with($path, '/series/') ? 'series' : (str_starts_with($path, '/movie/') ? 'movies' : null);
+            if ($type === null || ($identity = $this->identity($item, $type)) === null) {
+                continue;
+            }
+            try {
+                $exists = Media::withTrashed()
+                    ->where('source', 'content-worker')
+                    ->where('type', $identity['media_type'])
+                    ->where('source_id', $identity['source_id'])
+                    ->exists();
+                $details = $this->details($identity['url'], $settings);
+                $this->persist($identity, $item, $details, $this->detectYear($item, $details));
+                $report[$exists ? 'updated' : 'created']++;
+            } catch (\Throwable $error) {
+                report($error);
+                $report['failed']++;
+            }
+        }
+
+        return $report;
+    }
+
     /** @return array<string, int|bool|string> */
     public function sync(string $type, int $pages, int $limit, bool $dryRun = false, ?callable $logger = null, array $years = [], string $language = 'all', bool $targetNew = false): array
     {
